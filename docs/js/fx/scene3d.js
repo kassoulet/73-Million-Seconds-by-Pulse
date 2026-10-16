@@ -21,7 +21,10 @@ export class SceneObject {
   setMesh(positions, indices, normals, faceNormals, opts) {
     const n = positions.length / 3;
     const m = this.mesh || {}; const surfaces = m.surfaces || [{ name: 'mc', texture: '', color: [255, 255, 255], opacity: 255, mode: 4 }];
-    this.mesh = { positions, indices, normals: normals || computeNormals(positions, indices), uv: null, tsurf: new Uint16Array(indices.length / 3), surfaces };
+    // the polygons keep the material of the first polygon of the original object (not material 0)
+    const first = m.tsurf && m.tsurf.length ? m.tsurf[0] : 0;
+    const tsurf = new Uint16Array(indices.length / 3); tsurf.fill(first);
+    this.mesh = { positions, indices, normals: normals || computeNormals(positions, indices), uv: null, tsurf, surfaces };
     this.smooth = !(opts && opts.smooth === false);
     this.bbox = bboxOf(positions); this.meshVersion++;
   }
