@@ -1,0 +1,69 @@
+<section class="fx" id="fx-playrgbani">
+<h3>playrgbani - 24 bit animation with frame cross-fade</h3>
+<p>The 40-frame, 320x180 "nebar" animation (the glowing bars shown at order 5-6) is played into a 32 bit buffer. The playback position is <code>f = seconds * fps</code> (7 frames per second); the picture shown is a <em>cross-fade between frame floor(f) and the following frame</em>, weighted by the fractional part, so the 7 fps animation looks smooth at 30-60 Hz. At the end the position wraps with <code>fmod</code> (loop flag = 1) and the "next" frame of the last one is frame 0.</p>
+<p>The blend is done without a single multiplication per pixel: two 256 entry byte tables <code>tabA[i] = trunc(i*(1-frac))</code> and <code>tabB[i] = trunc(i*frac)</code> are rebuilt each frame and every channel is <code>tabA[a] + tabB[b]</code>. The helper at 0x4f5d8 patches the table addresses into the displacement fields of the loop (self-modifying code again, the tables are indexed with a fixed 0x3e7 offset in the listing before patching), and the loop converts 3-byte packed pixels into 4-byte 0x00RRGGBB pixels.</p>
+<p>The 3rd parameter (10) is a y offset: the 180-line animation is centred in the 200-line buffer, rows 0-9 and 190-199 stay untouched. In the web port the original <code>nebar.ani</code> (bzip-like block coder) is read from <code>nebar_sheet.png</code>, an 8x5 sheet of the 40 frames.</p>
+<h4>Cross-fade loop (0x4f65a)</h4>
+<pre class="asm">4f65a  mov al, byte ptr [edi + 0x3e7]; a0 = frame A, byte 0   (24 bit pixels, 3 bytes)
+4f660  mov bl, byte ptr [edi + 0x3e8]; a1
+4f666  mov cl, byte ptr [edi + 0x3e7]; b0 = frame B, byte 0
+4f66c  mov dl, byte ptr [edi + 0x3e8]; b1
+4f672  mov al, byte ptr [eax + 0x3e7]; tabA[a0]   (the table address is patched into the displacement by 0x4f5d8)
+4f678  mov bl, byte ptr [ebx + 0x3e7]; tabA[a1]
+4f67e  mov cl, byte ptr [ecx + 0x3e7]; tabB[b0]
+4f684  mov dl, byte ptr [edx + 0x3e7]; tabB[b1]
+4f68a  add al, cl; out0 = tabA[a0] + tabB[b0]
+4f68c  add bl, dl; out1
+4f68e  mov cl, byte ptr [edi + 0x3e9]
+4f694  mov dl, byte ptr [edi + 0x3e9]; a2 / b2
+4f69a  mov byte ptr [esi + 0x3e7], al; write 3 bytes of a 4 byte pixel
+4f6a0  mov byte ptr [esi + 0x3e8], bl
+4f6a6  mov cl, byte ptr [ecx + 0x3e7]
+4f6ac  mov dl, byte ptr [edx + 0x3e7]
+4f6b2  add cl, dl; out2
+4f6b4  add esi, 4; next destination pixel (+4)
+4f6b7  add edi, 3; next source pixel (+3)
+4f6ba  nop
+4f6bb  mov byte ptr [esi + 0x3e9], cl; the 4th byte of the pixel is left alone
+4f6c1  jne 0x4f65a</pre>
+<h4>Frame position clamp / wrap (0xfb16)</h4>
+<pre class="asm">fb16  fld1; g = 1 + f
+fb18  fadd dword ptr [ebp - 0x24]
+fb1b  fstp dword ptr [ebp - 0x34]
+fb1e  mov eax, dword ptr [ebp - 0x38]
+fb21  fild dword ptr [eax + 4]; last frame ...
+fb24  fcomp dword ptr [ebp - 0x34]; ... &lt; g ?
+fb27  fnstsw ax
+fb29  sahf
+fb2a  jae 0xfb5d
+fb2c  mov eax, dword ptr [ebp - 0x38]
+fb2f  cmp byte ptr [eax + 0x28], 0
+fb33  jne 0xfb40
+fb35  mov eax, dword ptr [ebp - 0x38]
+fb38  fild dword ptr [eax + 4]
+fb3b  fstp dword ptr [ebp - 0x34]
+fb3e  jmp 0xfb5d
+fb40  mov eax, dword ptr [ebp - 0x38]
+fb43  fild dword ptr [eax + 4]
+fb46  sub esp, 8
+fb49  fstp qword ptr [esp]
+fb4c  fld dword ptr [ebp - 0x34]
+fb4f  sub esp, 8
+fb52  fstp qword ptr [esp]
+fb55  call 0x4f58c; fmod(g, last): loops back to frame 0
+fb5a  fstp dword ptr [ebp - 0x34]
+fb5d  mov eax, dword ptr [ebp - 0x38]</pre>
+<h4>Port</h4>
+<pre class="js">let f = f32(f32(f32(fr - t0) / 100) * fps);            // frames elapsed
+f = fix(f); let g = fix(f32(1 + f));                     // fix(): loop with fmod(.,last) or clamp
+const frac = f32(f - Math.floor(f)), inv = f32(1 - frac);
+for (let i = 0; i &lt; 256; i++) { tabA[i] = ftol(i*inv) &amp; 255; tabB[i] = ftol(i*frac) &amp; 255; }
+// out = tabA[frame ia] + tabB[frame ib]  per channel, ia = trunc(first+f), ib = trunc(g)</pre>
+<dl class="facts">
+<dt>script</dt><dd><code>playrgbani name {} {SCREEN2} {nebar.ani 320 180 10 0 39 1 7.0}</code> = file, width, height, y offset, first frame, last frame, loop, frames per second (sscanf "%s %d %d %d %d %d %d %f")</dd>
+<dt>buffers</dt><dd>no input; output 32 bit 320x200 (the original aborts with "no such depth" otherwise)</dd>
+<dt>timeline</dt><dd>order 5 - 7 (t = 33 - 48 s), then lowpass, blend onto the 3D scene</dd>
+<dt>original</dt><dd>init 0xf96c, run 0xfa5f, free 0xfce9; blend 0x4f601 / table patch 0x4f5d8. The script line <code>loadanim nebar.ani</code> is commented out, the engine finds the animation by name in a global table (0x10b350) anyway</dd>
+<dt>verified</dt><dd>5 consecutive frames of the original: all 64000 pixels identical (including the 3 stray rows below the animation which the original leaves untouched)</dd>
+</dl>
+</section>

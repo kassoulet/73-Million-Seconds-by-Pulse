@@ -1,0 +1,34 @@
+<section class="fx" id="fx-blend">
+<h3>blend - saturated MMX add / subtract</h3>
+<p>The blend event combines two whole buffers bytewise, treating them as flat byte arrays whatever the pixel format. The script uses mode 1 (additive: glow, fades of logos over 3D) and mode 3 (subtract). With MMX the original does eight bytes per iteration using the saturating instructions <code>paddusb</code> / <code>psubusb</code>; the engine tests the CPUID MMX bit (<code>[0xdc2cc]</code>) and falls back to a SWAR emulation on plain integer registers (the 0xb36fc routine, which masks with 0xfefefefe and fixes up the carries).</p>
+<pre class="asm">
+; mode 1 (0xb37a8): out = sat(in0 + in1), 8 bytes per loop       esi=in0 ebx=in1 edi=out ecx=bytes
+b37a8  neg ecx
+b37aa  sub esi, ecx             ; point the three pointers at the end,
+b37ac  sub ebx, ecx             ; count the index up from -n to 0
+b37ae  sub edi, ecx
+b37b0  movq mm0, [esi+ecx]
+b37b4  paddusb mm0, [ebx+ecx]   ; unsigned saturating byte add
+b37b8  movq [edi+ecx], mm0
+b37bc  add ecx, 8
+b37c2  jne 0xb37b0
+b37c4  emms
+; mode 3 (0xb37e9): same loop with  psubusb mm0, [ebx+ecx]   (in0 - in1, clamped at 0)
+; mode 2 (0xb382a): colour key, one dword at a time
+b3833  mov eax, [esi+ecx]
+b3836  mov edx, [ebx+ecx]
+b3839  and edx, 0xffffff
+b383f  cmp edx, 0
+b3845  je 0xb3854              ; key colour (black) -> take the other buffer
+b3847  mov [edi+ecx], edx
+</pre>
+<pre class="js">
+for (k = 0; k &lt; n; k++) { v = s0[k] + s1[k]; d[k] = v &gt; 255 ? 255 : v; }   // mode 1
+for (k = 0; k &lt; n; k++) { v = s0[k] - s1[k]; d[k] = v &lt; 0 ? 0 : v; }       // mode 3
+</pre>
+<dl class="facts">
+<dt>script</dt><dd><code>blend name {in0 in1} {out} {mode}</code>; modes 1 and 3 used. Also implemented: 2, 11, 22, 33 (33 is a bug in the original: it zeroes the output).</dd>
+<dt>on 8 bit buffers</dt><dd>the add works on palette indices (<code>blend f {SCREEN8 SCREEN8}</code>), i.e. it saturates indices at 255.</dd>
+<dt>verified</dt><dd>byte exact against the original for modes 1, 2, 3, 11 on 32 bit and 8 bit buffers, also with in == out</dd>
+</dl>
+</section>

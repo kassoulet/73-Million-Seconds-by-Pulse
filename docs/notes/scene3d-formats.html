@@ -1,0 +1,62 @@
+<section class="fx" id="fx-scene3d-formats">
+<h3>3D file formats: UNLW scenes, LWV objects and UEXP scenes</h3>
+<p>The demo has no 3D model loader of the usual kind: every 3D file is a small <em>pre-digested</em> binary produced by the group's own converters.
+<code>*.lwe</code> (magic <code>UNLW</code>) is a LightWave scene reduced to its motion data (objects, nulls, one camera, lights), <code>*.lwv</code> is the
+LightWave object that an <code>.lwe</code> refers to (the loader at <code>0x1cacc</code> simply patches the name <code>x.lwo</code> into <code>x.lwv</code> and
+opens it in the archive), and <code>*.exp</code> (<code>UEXP</code>) is an export of a 3D Studio MAX scene (<code>Box01</code>, <code>GeoSphere01</code>,
+<code>Omni01</code>... are MAX names). The loaders are handwritten assembly (<code>loadlws.c</code> at <code>0x1bf7c</code>, <code>loaduexp.c</code> at <code>0x1f02f</code>) that read
+the whole file into memory and then walk a pointer through it.</p>
+<p>A UNLW file is a stream of tagged chunks; the dispatcher is a jump table indexed by the tag byte. Every animated entity is a list of <strong>44-byte motion keys</strong>:
+six floats (x y z, heading pitch bank in degrees), the frame number, a <em>linear</em> flag and the tension / continuity / bias of the Kochanek-Bartels spline.
+The loader turns them into a doubly linked list of 0x58-byte records (values widened to doubles) and appends a copy of the last key as sentinel. The last six dwords
+of the file give the entity counts and the duration in frames (1500 for the aziz scene, 160 for obj1.lwe).</p>
+<pre class="asm">
+; 0x1c116  chunk dispatcher of loadlws.c  (ah = chunk id = byte before the read pointer ebp)
+1c10a  mov  ah, byte ptr [ebp - 1]
+1c10d  cmp  ah, 0xff                 ; 0xff = end
+1c110  je   0x1ca74
+1c116  mov  al, ah
+1c118  dec  al
+1c11a  cmp  al, 0xa
+1c11c  ja   0x1ca6b                  ; unknown id: skip
+1c126  jmp  dword ptr cs:[edx*4 + 0x1bf50]   ; 1 object, 2 camera, 3 light, 4 null, 11 modifier
+; object key reader (0x1c1eb): 44 bytes -> 0x58 byte record, floats widened to doubles
+1c1eb  add  ebp, 4
+1c1f4  fld  dword ptr [ebp - 4]      ; x
+1c1fa  fstp qword ptr [esi + eax]
+...                                  ; y z heading pitch bank the same way
+1c24d  mov  edi, dword ptr [ebp + 4] ; frame number
+1c253  mov  dword ptr [esi + eax + 0x4c], edi
+1c260  mov  edi, dword ptr [ebp + 4] ; linear flag
+1c266  mov  dword ptr [esi + eax - 0x10], edi
+1c271  fld  dword ptr [ebp + 4]       ; tension, continuity, bias
+1c274  fstp qword ptr [esi + eax - 0x28]
+</pre>
+<pre class="js">
+// formats.js: parseLWE (chunk loop) and the key reader
+function readLweKeys(dv, p, n) {
+  for (let i = 0; i &lt; n; i++, p += 44) {
+    for (let k = 0; k &lt; 6; k++) v[k] = dv.getFloat32(p + 4 * k, true);
+    keys.push({ v, frame: dv.getInt32(p + 24, true), linear: dv.getInt32(p + 28, true) !== 0,
+      tension: dv.getFloat32(p + 32, true), continuity: dv.getFloat32(p + 36, true), bias: dv.getFloat32(p + 40, true) });
+  }
+}
+</pre>
+<h4>LWV objects</h4>
+<p>12-byte header (vertices, triangles, surfaces), then 20 bytes per vertex (x y z u v), one 70-byte record per surface (name[32], texture name[26], RGB at +58, flags) and
+8 bytes per triangle (three 16-bit vertex indices and a surface number). Only one surface exists in the four shipped objects and all of them point at the same
+256x256 texture (<code>echo.png</code>, <code>echo2.png</code>, <code>test.png</code>), used as an environment map. The values of the script commands
+<code>lwotr</code> (transparency, 0-255) and <code>lwoshading</code> (shading mode) that were in force <em>when the scene was loaded</em> are copied into every surface
+record (<code>+0xa7</code> and <code>+0xa6</code>), which is why <code>aziz1.lwe</code> / <code>obj1.lwe</code> are opaque (255) and <code>aziz2.lwe</code>, loaded after
+<code>lwotr 57</code>, is 22 % transparent.</p>
+<h4>UEXP</h4>
+<p>Header: object / camera / null / light / particle / material counts and the duration in frames. A material is 16+5*13 name bytes, nine floats and four bytes
+(shininess, opacity, shading mode, flags: the boxes use mode 4, opacity 160 or 255). Objects store their vertices in <em>world space</em> (the loader multiplies them
+with the inverse node matrix), UV set, faces (3 indices + material) and a position track; cameras are a position and a target track plus FOV / roll tracks
+(a 3ds-max target camera), lights a name, colour and a position track. Tracks are 28-byte keys (frame, x, y, z, tension, continuity, bias) evaluated by the same TCB spline.</p>
+<dl class="facts">
+<dt>Files</dt><dd>aziz1/aziz2/obj1/scene/vol.lwe, aziz_2/obj11/p_u/particl3.lwv, box2/box3/smoke.exp</dd>
+<dt>Parser</dt><dd><code>docs/js/fx/3d/formats.js</code> (all files are consumed exactly to the last byte)</dd>
+<dt>Original</dt><dd><code>0x1bf7c</code> UNLW, <code>0x1cacc</code> LWV, <code>0x1f02f</code> UEXP</dd>
+</dl>
+</section>

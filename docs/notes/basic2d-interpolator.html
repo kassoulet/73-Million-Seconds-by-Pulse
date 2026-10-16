@@ -1,0 +1,32 @@
+<section class="fx" id="fx-interpolator">
+<h3>interpolator - integrating a delta-coded 16 bit buffer</h3>
+<p>In the first scene SCREEN16 is not a picture: <code>loadscene aziz1.lwe SCREEN16 i</code> makes the 3D rasteriser write signed 16 bit <em>deltas</em> (the difference between horizontally adjacent shading values, so flat spans cost nothing). <code>interpolator</code> integrates every row into an 8 bit shade buffer: <code>acc += delta; out = acc</code>, but any value outside 0..255 is written as 255 (the test is one unsigned compare), while the accumulator keeps running. The result in SCREEN8 is then lowpassed and coloured through <code>medusa.pal</code>.</p>
+<pre class="asm">
+; 0x57b8c  esi = delta row (words), edi = out row (bytes), ecx = width ; two pixels per iteration
+57b90  shr ecx, 1
+57b92  mov ebp, [esi]
+57b94  shl ebp, 0x10            ; sign extend word 0
+57b99  sar ebp, 0x10
+57b9c  mov ebx, [esi]
+57b9e  mov edx, 0xff
+57ba4  sar ebx, 0x10            ; sign extend word 1
+57ba8  add eax, ebp             ; acc += d0      (eax = 0 at row start)
+57baa  add esi, 4
+57bad  cmp eax, 0xff
+57bb2  ja 0x57be7               ; unsigned: negative or > 255 -> store 255
+57bb4  mov [edi], al
+57bb6  add edi, 2
+57bb9  add eax, ebx             ; acc += d1
+57bbb  mov ebp, [esi]           ; load next pair while comparing
+57bbd  cmp eax, 0xff
+57bc2  ja 0x57bf7
+57bc7  mov [edi-1], al
+</pre>
+<pre class="js">
+for each row: acc = 0; for x: acc += s[p]; d[p] = (acc >>> 0) > 255 ? 255 : acc;
+</pre>
+<dl class="facts">
+<dt>script</dt><dd><code>interpolator i {SCREEN16} {SCREEN8} {}</code> (order 0..5). An optional palette parameter makes the original write 32 bit colours through a lookup table; not used.</dd>
+<dt>verified</dt><dd>byte exact on random delta rows (two ranges)</dd>
+</dl>
+</section>

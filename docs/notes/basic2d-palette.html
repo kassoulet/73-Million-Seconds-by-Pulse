@@ -1,0 +1,36 @@
+<section class="fx" id="fx-palette">
+<h3>palette, colordistort, blit, fillbuffer</h3>
+<p><em>palette</em> converts an 8 bit index buffer to 32 bit RGB. The <code>.pal</code> files are raw VGA DAC dumps, 256 x (r,g,b) with 6 bit components; the setup loop packs each entry and multiplies by 4 in one shift (<code>(r&lt;&lt;16|g&lt;&lt;8|b) &lt;&lt; 2</code>), so 63 becomes 252 and pure white never occurs. The pixel loop is a plain 256 entry dword table lookup. <em>colordistort</em> is the byte version of the same idea: <code>out = file[in]</code> with the 256 byte <code>m2.bin</code>. <em>fillbuffer</em> is a memset to 0 (the script's parameter is parsed and ignored). <em>blit</em> is a surface copy; between equal depths it is a memcpy, between different depths it goes through the video library's generic converter, which cannot run in our emulator, so the cross-depth rule (grey ramp / luma) is an assumption.</p>
+<pre class="asm">
+; 0x81ad  palette: edi = dst (32 bit), esi = src (8 bit), ebx = .pal data, ecx = pixel count
+81b4  mov ebp, 0xffffff00       ; table index runs -256..-1 so the loop ends on zero
+81bd  mov dl, [ebx+2]           ; b
+81c0  mov al, [ebx]             ; r
+81c2  shl eax, 0x10
+81c5  mov dh, [ebx+1]           ; g
+81c8  or edx, eax
+81ca  add ebx, 3
+81cd  shl edx, 2                ; 6 bit -> 8 bit by x4
+81d2  mov [ebp*4+0xc21f0], edx  ; table at 0xc1df0
+81d9  inc ebp
+81df  jne 0x81bd
+81e1  mov al, [esi]             ; --- per pixel ---
+81e3  inc esi
+81e4  add edi, 4
+81e8  mov edx, [eax*4+0xc1df0]
+81ef  dec ecx
+81f0  mov [edi-4], edx
+81f3  jne 0x81e1
+; colordistort 0xef20
+ef28  mov bl, [eax]             ; in[i]
+ef37  mov dl, [edx+ebx]         ; table[in[i]]
+ef39  mov [eax_out], dl
+</pre>
+<pre class="js">
+lut[i] = ((p[3*i] &lt;&lt; 16) | (p[3*i+1] &lt;&lt; 8) | p[3*i+2]) &lt;&lt; 2;   d[k] = lut[s[k]];
+</pre>
+<dl class="facts">
+<dt>script</dt><dd><code>palette name {SCREEN8} {SCREEN} {medusa.pal}</code>, <code>colordistort cd {SCREEN8} {SCREEN8} {m2.bin}</code>, <code>blit</code>, <code>fillbuffer</code></dd>
+<dt>verified</dt><dd>palette (two files) and colordistort byte exact; blit same-depth trivially exact; cross-depth blit NOT verified (assumed)</dd>
+</dl>
+</section>

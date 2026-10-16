@@ -1,0 +1,60 @@
+<section class="fx" id="fx-volumes-sprites">
+<h3>volumesprites &mdash; a cloud of additive sprites from a 3D field</h3>
+<p>The final scene (about 245&ndash;262 s) does not draw polygons at all (<code>renderoff</code> disables the rasteriser, only the camera and
+transform set-up still run). <code>volumesprites cudrkgh {} {SCREEN} {kubes box01 OurVolume}</code> walks the 16&times;16&times;16 field that
+<code>metaballs ... test2.mbs</code> fills every frame; for each voxel with <code>35&middot;value &ge; 1</code> (clamped to 120) it takes the voxel's position inside the bounding
+box of <code>box01</code>, transforms it with the camera of the scene (last object matrix &times; camera, kept in globals at <code>0x1286d0</code>) and
+projects it with the usual <code>x&middot;f/z</code>. The sprite is a square of <code>35&middot;value&middot;150/z</code> pixels (skipped when smaller than 3.5), so
+dense parts of the blobs give big, near ones even bigger. The texture is the first material of the scene (<code>pink.png</code>, 256&times;256, 8 bit)
+coloured through a 256-entry ramp <code>pal[i] = i/160 &middot; colour &middot; 256</code> (<code>0x21b9b</code>) whose bytes are kept even.</p>
+<p>The blitter <code>0x58f04</code> is hand-written asm with self-modifying code: the texture and palette addresses and the per-pixel
+texture steps are patched into the instruction stream. Edges are converted to 16.16 fixed point with the classic &ldquo;add 1.5&middot;2<sup>36</sup>&rdquo; trick
+(the low mantissa dword is then the rounded integer), clipped, and u/v are walked as 8.16 values whose integer byte lives in <code>cl</code>/<code>ch</code>
+(so the texture index is simply <code>ecx</code> and wrapping at 256 is free). The additive blend is a SWAR saturating add: since both operands have even bytes,
+bits 8, 16 and 24 of the 32-bit sum are the carries, and <code>carry &minus; (carry&gt;&gt;8)</code> turns them into <code>0xff</code> masks.</p>
+<h4>Per-pixel loop (original 0x5910a)</h4>
+<pre class="asm">
+5910a  mov  ebx, dword [edi]               ; frame buffer pixel
+5910c  mov  al, byte [ecx + 0x1869f]       ; texel = tex[v*256+u]   (0x1869f patched with the texture address, ecx = v:u)
+59112  and  ebx, 0xfefefefe                ; drop the low bit of every channel
+59119  mov  eax, dword [eax*4 + 0x1869f]   ; palette entry (second patched address)
+59120  add  esi, 0xbc614e                  ; u fraction += du (immediate patched per sprite) ...
+59126  adc  cl, 0xc                        ; ... u integer += du integer + carry (immediate patched)
+59129  add  eax, ebx                       ; add, channels may overflow into bits 8/16/24
+5912b  mov  edx, eax
+5912d  add  edi, 4
+59130  and  edx, 0x1010100                 ; the three carry bits
+59136  mov  ebx, edx
+59138  shr  edx, 8
+5913b  sub  ebx, edx                       ; 0x100-1, 0x10000-0x100, 0x1000000-0x10000 = 0xff masks
+5913d  or   ebx, eax                       ; saturate
+5913f  dec  ebp                            ; width counter
+59140  mov  eax, 0
+59145  mov  dword [edi - 4], ebx
+59148  jne  0x5910a
+</pre>
+<h4>Edges to fixed point (original 0x58f04)</h4>
+<pre class="asm">
+58f05  fld  st(0)
+58f07  fmul dword [0xc8870]                ; half size = size * 0.5
+...
+58f19  fsub st(2)                          ; sx - h, sy - h, sx + h, sy + h ...
+58f29  fadd dword [0xc88b4]                ; + 1.5*2^36: the low dword of the double is now 16.16 fixed point
+58f49  fstp qword [0xc8894]
+58f94  add  ebx, 0xffff                    ; ceil(x0)
+58f9a  sar  ebx, 0x10
+</pre>
+<h4>JavaScript</h4>
+<pre class="js">
+const fix16 = (v) =&gt; { _d64[0] = v + 103079215104; return _lo[0] | 0; };   // low mantissa dword
+const sum = (pal[tex[(vin &lt;&lt; 8) | uin]] + (fb[p] &amp; 0xfefefefe)) &gt;&gt;&gt; 0;
+const c = sum &amp; 0x1010100;
+fb[p] = ((c - (c &gt;&gt;&gt; 8)) | sum) &gt;&gt;&gt; 0;
+</pre>
+<dl class="facts">
+<dt>script</dt><dd><code>volume3D nazwa3 {} {} {OurVolume}</code>, <code>clearvolume</code>, <code>metaballs ... test2.mbs</code>, <code>volumesprites cudrkgh {} {SCREEN} {kubes box01 OurVolume}</code></dd>
+<dt>time</dt><dd>order 33&ndash;35, about 245&ndash;262 s</dd>
+<dt>code</dt><dd>init <code>0x18eb3</code>, run <code>0x190cb</code>, projection <code>0x588d8</code>, blitter <code>0x58f04</code>, material ramp <code>0x21b9b</code></dd>
+<dt>port</dt><dd>blitter bit-identical to the original on 8 sprites (clipped, tiny, huge; 0 differing pixels); palette ramp identical; projection relies on scene3d.js</dd>
+</dl>
+</section>

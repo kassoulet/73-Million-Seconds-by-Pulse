@@ -1,0 +1,29 @@
+<section class="fx" id="fx-matrix">
+<h3>matrix - 3x3 convolution without multiplications (and a bug)</h3>
+<p>For an 8 bit image (used on SCREEN8 around order 23 for an embossed look) the nine kernel coefficients are turned into nine 256 byte lookup tables <code>T_k[v] = trunc(v*m_k) &amp; 255</code>. The loop then only does table lookups and 8 bit adds, wrapping modulo 256 (negative coefficients work thanks to the wrap); the tenth parameter is a constant added to every pixel (<code>trunc(255*m)</code>, 1.0 gives -1). Only interior pixels are written, the border is left untouched.</p>
+<p>The centre tap is lost: the code loads <code>dl = [esi]</code> and then executes <code>xor edx, edx</code> before using it as an index, so the centre coefficient (-2.0 in the script) always reads <code>T4[0] = 0</code>. We found this by probing the original with single-coefficient kernels.</p>
+<pre class="asm">
+; 0x5276a  loop body (esi = centre pixel, edi = -width, ebp = +width)
+527a5  mov al, [eax+0x112de8]   ; T0[top-left]     (tables are 256 bytes apart, patched code, no multiply)
+527ab  mov cl, [ecx+0x1130e8]   ; T3[left]
+527bb  mov bl, [ebx+0x1133e8]   ; T6[bottom-left]
+527b7  add al, cl
+527c2  add al, bl
+527c5  mov dl, [esi]            ; centre pixel ...
+527cd  xor edx, edx             ; ... thrown away
+527cf  mov dl, [edx+0x1131e8]   ; T4[0]
+527d5  mov bl, [ebx+0x112ee8]   ; T1[top]
+527db  mov cl, [ecx+0x1134e8]   ; T7[bottom]
+...
+5280f  mov cl, [0x113938]       ; the constant
+52826  mov [esi+0x34083], dl    ; imm32 patched with (out - in): store to the output image
+</pre>
+<pre class="js">
+d[p] = (T[s[p-w-1]] + T[256+s[p-w]] + T[512+s[p-w+1]] + T[768+s[p-1]] + T[1024]
+      + T[1280+s[p+1]] + T[1536+s[p+w-1]] + T[1792+s[p+w]] + T[2048+s[p+w+1]] + bias) &amp; 255;
+</pre>
+<dl class="facts">
+<dt>script</dt><dd><code>matrix ma {SCREEN8} {SCREEN82} {0.25 -0.5 0.25 0.25 -2.0 -0.25 -0.25 -0.5 -0.25 1.0}</code></dd>
+<dt>verified</dt><dd>byte exact on random images, two kernels</dd>
+</dl>
+</section>

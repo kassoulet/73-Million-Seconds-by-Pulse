@@ -1,0 +1,271 @@
+0 0 createBuffer SCREEN 320 200 32
+createBuffer SCREEN2 320 200 32
+createBuffer SCREEN3 320 200 32
+createBuffer SCREEN16 320 200 16
+createBuffer SCREEN8 320 200 8
+createBuffer SCREEN82 320 200 8
+createBuffer SCREEN83 320 200 8
+createBuffer PULSE 320 200 32 sleep.tga
+createBuffer PULSE2 320 200 32 pulse.tga
+createBuffer PULSE3 320 200 32 73millio.tga
+createBuffer TLO 320 200 32 tlo.jpg
+createBuffer TLO2 320 200 32 tlo2.jpg
+createBuffer ATOM 256 256 8 ways.tga
+createBuffer BG3D 320 200 32 bg3d.tga
+createBuffer MASK 320 200 32 mask.tga
+createBuffer SHERILYN 320 200 32 sherilyn.tga
+createBuffer KREDIS 320 200 32 kredis.tga
+loadscene scene.lwe SCREEN 0
+;loadscene przelot.lwe SCREEN16 i
+;loadanim nebar.ani picture2.pal
+loadscene vol.lwe SCREEN 0
+loadscene smoke.exp SCREEN 0
+loadscene box3.exp SCREEN 0
+loadscene box2.exp SCREEN 0
+lwotr 255
+lwoshading 4
+loadscene obj1.lwe SCREEN 0
+loadscene aziz1.lwe SCREEN16 i
+lwotr 57
+lwoshading 4
+loadscene aziz2.lwe SCREEN 0
+beamson
+;
+addEvent 0 fillbuffer fb {SCREEN16} {SCREEN16} {0}
+addEvent 0 scene skeen {SCREEN16} {SCREEN16} {aziz1.lwe 32.0 200.0}
+addEvent 0 interpolator i {SCREEN16} {SCREEN8} {}
+addEvent 1 lowpass lo {SCREEN8} {SCREEN8} {0.7}
+addEvent 1 palette pal {SCREEN8} {SCREEN} {medusa.pal}
+addEvent 1 scene skeen2 {SCREEN} {SCREEN} {aziz2.lwe 32.0 200.0}
+addEvent 1 fade fuckyou {SCREEN} {SCREEN} {0 0 0 1.0-clip10(Frame*0.003)}
+1 0 deleteEvent 1 fuckyou
+1 30 addEvent 1 fade wojo {PULSE2} {SCREEN2} {0 0 0 1.0-sin(3.14*clip10(Frame*0.002))}
+addEvent 1 blend me {SCREEN SCREEN2} {SCREEN} {1}
+3 0 deleteEvent 1 wojo
+deleteEvent 1 me
+;
+3 05 addEvent 0 radialblur rbl {SCREEN8} {SCREEN8} {320-310*clip10(Frame*0.004) 180 0.05+0.8*fabs(sin(3.14*clip10(Frame*0.0035))) -0.033}
+3 40 deleteEvent 0 rbl
+addEvent 1 fade wojo {PULSE3} {SCREEN2} {0 0 0 1.0-sin(3.14*clip10(Frame*0.002))}
+addEvent 1 blend me {SCREEN SCREEN2} {SCREEN} {1}
+3 50 addEvent 0 radialblur rbl {SCREEN8} {SCREEN8} {0 180 clip10(0.48*(1-Frame*0.0015)) -0.013}
+4 40 deleteEvent 0 rbl
+4 50 deleteEvent 1 wojo
+deleteEvent 1 me
+5 0 addEvent 1 playrgbani plani {} {SCREEN2} {nebar.ani 320 180 10 0 39 1 7.0}
+addEvent 1 lowpass x {SCREEN2 } {SCREEN3} {clip(sqr(Frame*0.0007),0.0,1.0)}
+addEvent 1 blend loz {SCREEN SCREEN3} {SCREEN} {1}
+6 0 deleteEvent 0 fb
+deleteEvent 0 skeen
+deleteEvent 0 i
+deleteEvent 1 lo
+deleteEvent 1 pal
+deleteEvent 1 skeen2
+deleteEvent 1 loz
+changeBuffers 1 x {SCREEN2} {SCREEN}
+6 50 addEvent 1 fade chuj {SCREEN} {SCREEN} {0 0 0 clip10(Frame*0.01)}
+7 0 deleteEvent 1 plani
+deleteEvent 1 x
+deleteEvent 1 chuj
+addEvent 0 fillbuffer fb {SCREEN} {SCREEN} {0}
+addEvent 1 scene skeen {SCREEN} {SCREEN} {vol.lwe 4.0 0.0}
+addEvent 1 lowpass lo {SCREEN} {SCREEN} {0.80}
+addEvent 1 blend ku {SCREEN SCREEN} {SCREEN} {1}
+addEvent 1 blit pierszy {SCREEN} {SCREEN8} {}
+addEvent 1 radialblur lorr {SCREEN8} {SCREEN8} {160 100 0.3+0.7*clip10(1.0-Frame*0.031) -0.33}
+addEvent 1 blit drugi {SCREEN8} {SCREEN2} {}
+addEvent 1 blend kus {SCREEN SCREEN2} {SCREEN} {1}
+addEvent 2 blend ku2 {SCREEN PULSE} {SCREEN} {1}
+addEvent 3 fade prze {SCREEN} {SCREEN} {0 0 0 1.0-clip10(Frame*0.004)}
+8 0 addEvent 1 fade logopuls {PULSE} {PULSE2} {0 0 0 clip10(Frame*0.003)}
+changeBuffers 2 ku2 {SCREEN PULSE2} {SCREEN}
+8 30 deleteEvent 3 prze
+9 16 controlfloat 0.8
+9 30 deleteEvent 1 logopuls
+deleteEvent 2 ku2
+9 36 controlfloat 0.6
+9 48 controlfloat 0.5
+10 4 controlfloat 0.8
+10 16 controlfloat 0.8
+10 36 controlfloat 0.6
+10 46 controlfloat 0.6
+11 4 controlfloat 0.8
+11 16 controlfloat 0.8
+11 36 controlfloat 0.6
+11 40 addEvent 3 fade fpoprz {SCREEN} {SCREEN} {0 0 0 clip10(Frame*0.027)}
+11 48 controlfloat 0.9
+11 50 addEvent 0 parasite pa1 {SCREEN3} {SCREEN3} {som.png}
+deleteEvent 0 fb
+deleteEvent 1 skeen
+deleteEvent 1 lo
+deleteEvent 1 ku
+deleteEvent 1 pierszy
+deleteEvent 1 lorr
+deleteEvent 1 drugi
+deleteEvent 1 kus
+deleteEvent 3 fpoprz
+11 54 addEvent 0 parasite pa2 {PULSE} {PULSE} {som.png}
+11 58 addEvent 0 blend parablend {SCREEN3 PULSE} {PULSE} {1}
+addEvent 0 lowpass paralow {SCREEN3} {PULSE} {0.3*clip10(Frame*0.003)}
+addEvent 3 fade parabol {PULSE} {SCREEN} {0 0 0 1.0-clip10(Frame*0.010)}
+12 20 deleteEvent 0 fb
+deleteEvent 3 parabol
+deleteEvent 0 paralow
+addEvent 0 lowpass paralow {PULSE} {SCREEN} {0.3}
+12 50 addEvent 0 fade ftb {SCREEN} {SCREEN} {0 0 0 clip10(Frame*0.01)}
+12 60 listaEvents
+deleteEvent 0 pa1
+deleteEvent 0 pa2
+deleteEvent 0 parablend
+deleteEvent 0 paralow
+deleteEvent 0 ftb
+controlfloat 0.0
+addEvent 0 fillbuffer filler {SCREEN8} {SCREEN8} {}
+addEvent 0 scene scena {SCREEN8} {SCREEN8} {smoke.exp 69.0 0.0}
+addEvent 0 setupflares naz1 {} {} {scena 2}
+addEvent 0 flareparticles naz2 {} {SCREEN8} {scena 0 f2.source 100 30 370 0.6 0 0 200 300 0 0.2 0.01}
+addEvent 0 flareparticles naz3 {} {SCREEN8} {scena 0 f2.source01 100 30 370 0.6 0 0 200 300 0 0.2 0.01}
+addEvent 0 flareparticles naz4 {} {SCREEN8} {scena 0 f2.source02 100 30 370 0.6 0 0 200 300 0 0.2 0.01}
+addEvent 0 flareparticles naz5 {} {SCREEN8} {scena 0 f2.source03 100 30 370 0.6 0 0 200 300 0 0.2 0.01}
+addEvent 0 flareparticles naz5 {} {SCREEN8} {scena 0 f2.source04 100 30 370 0.6 0 0 200 300 0 0.2 0.01}
+addEvent 0 radialblur a {SCREEN8} {SCREEN8} {161 101 0.850 -0.03}
+addEvent 0 blit wyb {SCREEN8} {SCREEN} {}
+addEvent 0 blend bl {SCREEN TLO} {SCREEN} {1}
+15 16 deleteEvent 0 filler
+deleteEvent 0 scena
+deleteEvent 0 naz1
+deleteEvent 0 naz2
+deleteEvent 0 naz3
+deleteEvent 0 naz4
+deleteEvent 0 naz5
+deleteEvent 0 naz5
+deleteEvent 0 a
+deleteEvent 0 wyb
+deleteEvent 0 bl
+addEvent 0 blit costam {TLO} {SCREEN} {}
+addEvent 0 scene jabole {SCREEN} {SCREEN} {box3.exp 50.0 0.0}
+;
+addEvent 0 volume3D mtb1 {} {} {V8Volume v8.dat}
+addEvent 0 volume3D mtb2 {} {} {SrcVolume vbox.dat}
+addEvent 0 volume3D mtb3 {} {} {OurVolume}
+addEvent 0 volume3D mtb3a {} {} {PlasmaVolume}
+addEvent 0 copyvolume mtb4 {} {} {OurVolume SrcVolume}
+addEvent 0 morphvolume mtb6 {} {} {OurVolume OurVolume V8Volume clip10(0.9+0.2*cos(Frame*0.005))}
+addEvent 0 metaballs mtb5 {} {} {OurVolume test1.mbs}
+addEvent 0 plasma1volume mtb7 {} {} {PlasmaVolume 0 1.4}
+addEvent 0 mulvolume mtb8 {} {} {OurVolume OurVolume PlasmaVolume}
+addEvent 0 morphvolume mtbX {} {} {OurVolume OurVolume SrcVolume clip10(Frame*0.002-0.3)}
+addEvent 1 marchingcubes mtb9 {} {} {jabole box02 OurVolume 1 0.5}
+addEvent 1 fadevolume mtbA {} {} {OurVolume OurVolume -1}
+addEvent 1 marchingcubes mtb9 {} {} {jabole box01 OurVolume 1 0.5}
+;
+17 0 addEvent 0 fadevolume mtbU {} {} {OurVolume OurVolume clip10(1-Frame*0.0076)}
+17 12 deleteEvent 0 costam
+deleteEvent 0 jabole
+deleteEvent 0 mtb1
+deleteEvent 0 mtb2
+deleteEvent 0 mtb3
+deleteEvent 0 mtb3a
+deleteEvent 0 mtb4
+deleteEvent 0 mtb6
+deleteEvent 0 mtb5
+deleteEvent 0 mtb7
+deleteEvent 0 mtb8
+deleteEvent 0 mtbX
+deleteEvent 1 mtb9
+deleteEvent 1 mtbA
+deleteEvent 1 mtb9
+deleteEvent 0 mtbU
+addEvent 0 echo pa1 {ATOM} {SCREEN8} {0.80 0.70}
+addEvent 0 radialblur kij {SCREEN8} {SCREEN8} {160+150*sin(Frame*0.01) 100+90*cos(Frame*0.01) 0.5+0.3*sin(Frame*0.005) -0.03}
+addEvent 0 palette pa2 {SCREEN8} {SCREEN} {green2.pal}
+addEvent 0 blend b {TLO SCREEN } {SCREEN} {1}
+addEvent 0 fade f {SCREEN} {SCREEN} {1 1 1 clip10(Frame*0.00075)}
+18 60 deleteEvent 0 pa1
+deleteEvent 0 kij
+deleteEvent 0 pa2
+deleteEvent 0 b
+deleteEvent 0 f
+19 0 addEvent 0 fillbuffer fillerski {SCREEN8} {SCREEN8} {}
+addEvent 0 echo6 nazwa {SCREEN8} {SCREEN8} {Frame*0.5}
+addEvent 0 lowpass usemkal {SCREEN8} {SCREEN8} {0.85}
+addEvent 0 radialblur usemka {SCREEN8} {SCREEN8} {160 100 0.95 -0.03}
+addEvent 0 palette b {SCREEN8} {SCREEN} {green2.pal}
+addEvent 0 fade fodwhite {SCREEN} {SCREEN} {1 1 1 1.0-clip10(Frame*0.005)}
+20 0 deleteEvent 0 fodwhite
+22 40 addEvent 0 fade ftodark {SCREEN} {SCREEN} {0 0 0 clip10(Frame*0.004)}
+22 60 deleteEvent 0 fillerski
+deleteEvent 0 nazwa
+deleteEvent 0 usemkal
+deleteEvent 0 usemka
+deleteEvent 0 b
+23 0 addEvent 1 fillbuffer fb {SCREEN8} {SCREEN8} {0}
+deleteEvent 0 ftodark
+addEvent 1 echo4 plani {SCREEN8} {SCREEN8} {Frame*0.8}
+addEvent 1 blit do {SCREEN8} {SCREEN83} {}
+addEvent 1 matrix ma {SCREEN8} {SCREEN82} {0.25 -0.5 0.25 0.25 -2.0 -0.25 -0.25 -0.5 -0.25 1.0}
+addEvent 1 lowpass loo {SCREEN82} {SCREEN8} {0.7}
+addEvent 1 palette pi1 {SCREEN8} {SCREEN2} {orange.pal}
+addEvent 1 palette pi3 {SCREEN83} {SCREEN} {picture2.pal}
+24 0 addEvent 1 xfade x {SCREEN2 SCREEN} {SCREEN} {clip10(Frame*0.0051)}
+24 30 deleteEvent 1 x
+deleteEvent 1 pi3
+changeBuffers 1 pi1 {SCREEN8} {SCREEN}
+25 0 addEvent 1 xfade tobg3d {BG3D SCREEN} {SCREEN} {Frame*0.0015}
+26 0 deleteEvent 1 tobg3d
+deleteEvent 1 fb
+deleteEvent 1 plani
+deleteEvent 1 do
+deleteEvent 1 ma
+deleteEvent 1 loo
+deleteEvent 1 pi1
+addEvent 0 fillbuffer fb {SCREEN} {SCREEN} {0}
+addEvent 0 scene skeen {SCREEN} {SCREEN} {obj1.lwe 3.0 0.0}
+addEvent 0 displace247 sdfdfg {} {} {skeen obj11.lwv 0.15 0.015 1.27} {0 0}
+addEvent 0 blit me {SCREEN} {SCREEN8} {}
+addEvent 0 colordistort cd {SCREEN8} {SCREEN8} {m2.bin}
+addEvent 0 lowpass lowp {SCREEN8} {SCREEN8} {0.23}
+addEvent 0 radialblur zakreco {SCREEN8} {SCREEN8} {2 100 0.36+0.2*sin(Frame*0.01) -0.04}
+addEvent 0 blend f {SCREEN8 SCREEN8} {SCREEN8} {1}
+addEvent 0 blit ugh {SCREEN8} {SCREEN2} {}
+addEvent 0 blend u {SCREEN SCREEN2} {SCREEN} {1}
+addEvent 0 fade f {MASK} {PULSE2} {0 0 0 1.0-clip10(Frame*0.00051)}
+addEvent 0 blend you {BG3D PULSE2} {SCREEN3} {3}
+addEvent 0 blend u {SCREEN3 SCREEN} {SCREEN} {1}
+28 30 addEvent 0 fade funk {SCREEN} {SCREEN} {0 0 0 clip10(Frame*0.0022)}
+29 0 deleteEvent 0 fb
+deleteEvent 0 skeen
+deleteEvent 0 sdfdfg
+deleteEvent 0 me
+deleteEvent 0 cd
+deleteEvent 0 lowp
+deleteEvent 0 zakreco
+deleteEvent 0 f
+deleteEvent 0 you
+deleteEvent 0 ugh
+deleteEvent 0 u
+deleteEvent 0 funk
+addEvent 1 fillbuffer juha {SCREEN8} {SCREEN8} {}
+addEvent 1 reebok juu {SCREEN8} {SCREEN8} {medusa.tga}
+addEvent 1 palette j {SCREEN8} {SCREEN} {medusa.pal}
+addEvent 1 fade ye {SCREEN} {SCREEN} {0 0 0 1.0-clip10(Frame*0.002)}
+30 0 deleteEvent 1 ye
+addEvent 1 fade dat {KREDIS} {MASK} {0 0 0 1.0-clip10(Frame*0.006)}
+addEvent 1 blend wot {MASK SCREEN} {SCREEN} {1}
+31 30 addEvent 1 fade ye {SCREEN} {SCREEN} {0 0 0 clip10(Frame*0.003)}
+32 0 deleteEvent 1 ye
+deleteEvent 1 juha
+deleteEvent 1 juu
+deleteEvent 1 j
+deleteEvent 1 dat
+deleteEvent 1 wot
+addEvent 0 blit doi {SHERILYN} {SCREEN} {}
+addEvent 0 scene kubes {SCREEN} {SCREEN} {box2.exp 40.0 0.0}
+renderoff
+addEvent 0 volume3D nazwa3 {} {} {OurVolume}
+addEvent 0 clearvolume nazwa4 {} {} {OurVolume}
+addEvent 0 metaballs nazwa5 {} {} {OurVolume test2.mbs}
+addEvent 0 volumesprites cudrkgh {} {SCREEN} {kubes box01 OurVolume}
+34 30 addEvent 0 fade ye {SCREEN} {SCREEN} {0 0 0 clip10(Frame*0.003)}
+35 33 TheEnd
+@

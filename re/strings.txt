@@ -1,0 +1,1040 @@
+b6004 example.h
+b6010 Largest available block (in bytes): %lu\n
+b603c Maximum unlocked page allocation: %lu\n
+b6064 Pages that can be allocated and locked: %lu\n
+b6094 Total linear address space including allocated pages: %lu\n
+b60d0 Number of free pages available: %lu\n
+b60f8 Number of physical pages not in use: %lu\n
+b6124 Total physical pages managed by host: %lu\n
+b6150 Free linear address space (pages): %lu\n
+b6178 Size of paging/file partition (pages): %lu\n
+b61a4  Select video mode for demo 
+b61c4  Select 640x480 video mode 
+b61e0 current data: frame[%f], pattern:row %d %d\n
+b620f G-setup
+b6218 -nointel
+b6224 -bigmem
+b622c -persp
+b6234 -invert
+b623c -nommx
+b6244 -less
+b624c -more
+b6254 -nocpuid
+b6260 73mil.sec
+b626c 73 million seconds [cookie : [analogz]]
+b6294                  pULSe
+b62b0 uNREAl cAMEl eCHO vISUALiZe vOOMIe kEYg
+b62d8 lead my singer.
+b62e8 good-looking handsome routines.
+b6308 \n\nplease wait, doing something extremaly important
+b633c tour2.xm
+b6348 example.c
+b6354 moo, kid (please wait again)
+b6374 loadanim nebar.ani picture2.pal
+b6394 "me gusta beber cerveza y las chicas tambien" - antony/pulse
+b63d4 script.unr
+b63e0 %d worlds\n
+b63ec noname
+b63f4 mem.c
+b63fc 0 <= flag && flag <= MEM_RETRY
+b6424 alloc'd from file '%s' line %d nbytes %d ptr x%x\n
+b6458 File '%s' line %d\n
+b646c More frees than allocs at 
+b6488 Pointer x%x underrun\n
+b64a0 Pointer x%x overrun\n
+b64b8 error: mem_numalloc = %ld, dl->nbytes = %d\n
+b64e4 free'd from 
+b64f4 Unfreed pointer: 
+b6508 mem_count == 0 && mem_scount == 0
+b652c Protected mode vesa interface not found, try page switching mode
+b6570 Physical memory mapping error, try page switching mode
+b65a8 svga.c
+b65b0  %d,%d  %s
+b6611                                                                               
+b66b8 images.c
+b66c8 MAPS\
+b66d0 Could not find file 
+b66e8 Image 
+b66f0  not found
+b66fc Image has unknown type
+b6714 IMS error: could not init\n
+b6730 IMS error: could not open module.\n
+b6754 IMS error: could not load module.\n
+b6778 IMS error: could not upload samples.\n
+b679f IMS error: could not play module.\n
+b67d4 %d %d
+b67e0 theend
+b67e8 loadscene
+b67f4 loadanim
+b6800 addevent
+b680c suppressevent
+b681c resumeevent
+b6828 deleteevent
+b6834 changebuffers
+b6844 listevents
+b6850 setscenesorder
+b6860 process_twirl3d
+b6870 setwireframe
+b6880 setparticles
+b6890 renderoff
+b689c beamsoff
+b68a8 renderon
+b68b4 beamson
+b68bc lwotr
+b68c4 %*s %d
+b68cc lwoshading
+b68d8 controlfloat
+b68e8 %*s %f
+b68f0 assignbuffertotexture
+b6908 loadimage
+b6914 blit
+b691c deletebuffer
+b692c createbuffer
+b693c %s %s %d %d %d %s
+b6950 stop
+b6958 %s %s
+b6960 loadbackground
+b6970 removebackground
+b6984 assignbackground
+b6998 %s %s %s
+b69a4 request to assign background %s to buffer %s in (%d:%d)\n
+b69e0 received a request to create a %d bit %d x %d in buffer named %s\n
+b6a24 script.c
+b6a30 %*s %s %s
+b6a3c %*s %s %s %c
+b6a4c %d %d %s %s %s %f %f %f %f %f %f %f
+b6a70 %d %d %s %s %s %s
+b6a84 %*s %[^,]%*s %[^,]%*s %[^,]%*s %[^,]%*s %[^,]%*s %[^,]%*s %[^,]%*s %[^,]%*s\n
+b6ad4 %d %d %s %s %s %d
+b6ae8 %s %s %s %d
+b6af4 %*s %s
+b6afc %*s %d %s %s
+b6b0c tried to add non existant event: %s
+b6b30 %s %s %s %s
+b6b3c global events allocated %d\n
+b6b58 EventSlot %d\n
+b6b68     %s %s at %d %d, INPUTS: %s %s, OUTPUT: %s\n
+b6b98 %*s %d %s
+b6ba4 could not find render target buffer
+b6bdf Bscene1.c
+b6bec .exp
+b6bf4 .lwe
+b6c18 ralloc.c
+b6c24 FILE ERROR : %s%s\n
+b6c3a No archive file!!! 
+b6c4e File not found : 
+b6c6e P@hsort.c
+b6c78 \nproblem with graphics adapter - could not initialize any video mode\n
+b6cbe try running UNIVBE.\n
+b6cd4 Assertion failed: %hs, file %hs, line %d\n
+b6d00 misc.c
+b6d0c font0.png
+b6d1b can't open %s\n
+b6d2c IMSSETUP
+b6d35 quiet
+b6d3b AMD InterWave
+b6d49 Gravis UltraSound
+b6d5b GUS Software Mixing
+b6d6f GUS MAX
+b6d77 GUS DaughterBoard
+b6d89 Double GUS 2D
+b6d97 SoundBlaster 32
+b6da7 SoundBlaster 16
+b6db7 SoundBlaster Pro stereo
+b6dcf SoundBlaster 2.x/Pro mono
+b6de9 SoundBlaster 1.x
+b6dfa Windows Sound System
+b6e0f ESS Audio Drive 688
+b6e23 Pro Audio Spectrum
+b6e38 Extended Module: 
+b6e4c undefined constructor or destructor called!
+b6e78 event.c
+b6e83 %s %f %f
+b6eaa Y@sorry, no ZOOM for this depth
+b6eca %f %f
+b6eec Mb@?
+b6f46  @%s %d %d %d %f\n
+b6f5b B%s %d %d %d %d %d %d %f\n
+b6f75 %d %d %d\n
+b6f82 Bno such depth supported 
+b6fc3 @%s %s %s %s %s %s
+b6fd6 Zla liczba parametrow dla EchoCml32!!!
+b6ffd eventc.c
+b7006 Blad w parametrze 1 EchoCml32!!! {%s}\n
+b702d Blad w parametrze 2 EchoCml32!!! {%s}\n
+b7054 Blad w parametrze 3 EchoCml32!!! {%s}\n
+b707b Blad w parametrze 4 EchoCml32!!! {%s}\n
+b70a2 Blad w parametrze 5 EchoCml32!!! {%s}\n
+b70c9 Blad w parametrze 6 EchoCml32!!! {%s}\n
+b70f7 ?EchoCml needs 32 bit output buffer
+b711b EchoCml needs 32 bit input buffer
+b713d %f %f %f %f %f %f %d %d %d %d %d %d %d %f %f %f %f %s %s %s %s
+b717c Zla liczba parametrow dla EchoCml32!!!
+b71a3 Blad w parametrze 18 EchoCml32!!! {%s}\n
+b71cb Blad w parametrze 19 EchoCml32!!! {%s}\n
+b71f3 Blad w parametrze 20 EchoCml32!!! {%s}\n
+b721b Blad w parametrze 21 EchoCml32!!! {%s}\n
+b7256 ?333333$@
+b7282 ?Zla wielkosc particles (PartMag2D)
+b72ae 333333
+b72b5 ?PartMag2D needs 16 or 32 bit output buffer
+b7318 ?%f %f %f %s
+b7325 Zla liczba parametrow dla Fade16!!!
+b7349 Blad w parametrze 4 Fade16!!! {%s}\n
+b736d Fade: Input and output buffer sizes and depths must be equal
+b73c8 o@Fade: Buffer color depth not supported
+b73f4 Zla liczba parametrow dla XFade!!!
+b7417 Blad w parametrze 1 XFade!!! {%s}\n
+b743a XFade: Input and output buffer sizes and depths must be equal
+b747e o@XFade: Buffer color depth not supported
+b74a8 AFade: Input and output buffer sizes and depths must be equal
+b74e6 AFade: Buffer color depth not supported
+b750e Zla liczba parametrow dla LowPass!!!
+b7533 Blad w parametrze 1 LowPass!!! {%s}\n
+b7558 Fade: Input and output buffer sizes and depths must be equal
+b75b1 LowPass: Buffer color depth not supported
+b75db Dither: Input and output buffer sizes or depths are not valid
+b7619 Dither: Buffer color depth not supported
+b7642 DitherFS: Input and output buffer sizes and depths must be equal
+b7683 DitherFS: Buffer color depth not supported
+b76ae Edges: Input and output buffer sizes and depths must be equal
+b76ec Edges: Buffer color depth not supported
+b7714 %f %f %f %f %f %f %f %f %f %f
+b7732 Zla liczba parametrow dla Matrix!!!
+b775c o@MatrixEffects: Input and output buffer sizes and depths must be equal
+b77a4 MatrixEffects: Buffer color depth not supported
+b77db ?Blad w parametrze GridFX!!! {%s}\n
+b7805 ?ffffff
+b785d ?GridEffects: Input and output buffer sizes and depths must be equal
+b78a2 GridEffects: Buffer color depth not supported
+b78d0 %s %s %s %s
+b78dc Zla liczba parametrow dla RotoZoomer!!!
+b7904 RotoZoomer:Param error {%s}\n
+b7921 RotoZoomer: Input and output buffer sizes and depths must be equal
+b797a  @RotoZoomer: Buffer color depth not supported
+b79a9 ShowZbuffer: output buffer depth must be 8
+b79d4 %s %s %d
+b79dd FakeZBuffer: wrong params
+b79f7 FakeZBuffer: Error at param 1\n
+b7a16 FakeZBuffer: Error at param 2\n
+b7a35 Zla liczba parametrow dla BoxFilter!!!
+b7a5c Blad w parametrze 1 BoxFilter!!! {%s}\n
+b7a83 BoxFilter: Input and output buffer sizes and depths must be equal
+b7ac5 BoxFilter: Buffer color depth not supported
+b7af4 evento.c
+b7b00 %s %s %s
+b7b0c Zla liczba parametrow dla Bomb!!!
+b7b30 Blad w parametrze 3 Bomb!!! {%s}\n
+b7b54 Bomb: Scene (%s) not found\n
+b7b70 Bomb: Object (%s) not found\n
+b7b8d UUUUUU
+b7b98 8333333
+b7ba0 ?333333
+b7bec SilvereGridEffects: Input and output buffer sizes and depths must be equal
+b7c38 SilvereGridEffects: Buffer color depth not supported
+b7c70 %s %s %s %s %s
+b7c80 Zla liczba parametrow dla Disp247!!!
+b7ca8 Blad w parametrze 3 Disp247!!! {%s}\n
+b7cd0 Blad w parametrze 4 Disp247!!! {%s}\n
+b7cf8 Blad w parametrze 5 Disp247!!! {%s}\n
+b7d20 Disp247: Scene (%s) not found\n
+b7d40 Disp247: Object (%s) not found\n
+b7d60 Zla liczba parametrow dla DispNorm!!!
+b7d88 Blad w parametrze 3 DispNorm!!! {%s}\n
+b7db0 Blad w parametrze 4 DispNorm!!! {%s}\n
+b7dd8 Blad w parametrze 5 DispNorm!!! {%s}\n
+b7e00 DispNorm: Scene (%s) not found\n
+b7e20 DispNorm: Object (%s) not found\n
+b7e44 %d %d %s rgbforwardrecord %s %d
+b7e64 rgbbackwardplay
+b7e74 %d %d %s forwardrecord %s %d
+b7e91 backwardplay
+b7e9e %d %d %s forward %s
+b7eb2 none
+b7eb7 %d %d %s backward %s
+b7ecc %s.tp0
+b7ed3 %s.tm1
+b7eda %d %d %s rgbforward %s
+b7ef1 %d %d %s rgbbackward %s
+b7f09 illegal parameters for Wave.
+b7f3b @e@ffffff
+b7f80 grayscott %f %f %f %s
+b7f96 none
+b7f9b preinit grayscott %f %f %f %s
+b7fb9 none
+b7fc2 cellrd: illegal args\n
+b7fd8 %f %f
+b7fde %f %f %f %f
+b7fea gfeed: output buffer size is not 512x200...\n
+b8017 gfeed: input 0 size is not 320x200...\n
+b803e gfeed: input 1 size is not 512x200...\n
+b8074 ?333333
+b8088 blob.c
+b80fa ?%s %s
+b8101 Volume3D: Params parse error.
+b811f Too many volumes!!!
+b8136 ClearVolume: Params parse error.
+b8157 ClearVolume: Volume not found
+b8175 CopyVolume: Params parse error.
+b8195 CopyVolume: Dest volume not found
+b81b7 CopyVolume: Src volume not found
+b81d8 MetaBalls: Params parse error.
+b81f7 MetaBalls: Volume not found
+b8213 %s %s %s %s %s
+b8222 MetaBalls: Wrong param %d at config file line %d\n
+b8254 MetaBalls: Wrong param X at config file line %d\n
+b8285 MetaBalls: Wrong param Y at config file line %d\n
+b82b6 MetaBalls: Wrong param Z at config file line %d\n
+b82e7 MetaBalls: Wrong param R at config file line %d\n
+b8318 MetaBalls: Wrong param C at config file line %d\n
+b8349 %s %s %s %d %s
+b8358 MarchingCubes: Params parse error.
+b837b MarchingCubes: threshold compile error
+b83a2 MarchingCubes: Scene (%s) not found\n
+b83c7 MarchingCubes: Object (%s) not found\n
+b83ed MarchingCubes: Volume not found
+b840d %s %s %s %s
+b8419 MorphVolume: Params parse error.
+b843a MorphVolume: Volume not found
+b8458 MorphVolume: Volume not found
+b8476 MorphVolume: Volume not found
+b8494 MorphVolume: Wrong param 4\n
+b84b0 %s %s %s
+b84b9 AddVolume: Params parse error.
+b84d8 AddVolume: Volume not found
+b84f4 SubVolume: Params parse error.
+b8513 SubVolume: Volume not found
+b852f MulVolume: Params parse error.
+b854e MulVolume: Volume not found
+b856a FadeVolume: Params parse error.
+b858a FadeVolume: Volume not found
+b85a7 FadeVolume: Wrong param 3\n
+b85c2 Plasma1Volume: Params parse error.
+b85e5 Plasma1Volume: Volume not found
+b8605 Plasma1Volume: Wrong param 2\n
+b8623 Plasma1Volume: Wrong param 3\n
+b8653 pAVolumeSprites: Params parse error.
+b8678 VolumeSprites: Scene (%s) not found\n
+b869d VolumeSprites: Object (%s) not found\n
+b86c3 VolumeSprites: Volume not found
+b86f4 eventn.c
+b8740 ?ParaSite: Output buffer muse be 320x200x32
+b87aa Y@333333
+b87f3 @ffffff
+b87fb ?%s %s %s %s
+b8808 Tunnel: Params error
+b881d Tunne: Param error {%s}\n
+b88bc i@%s %s
+b88c4 SetupFlares: Params error
+b88de SetupFlares: Param error {%s}\n
+b88fd SetupFlares: Scene (%s) not found\n
+b8920 %s %d %s %d %f %f %f %f %f %f %f %f %f %f
+b894a FlareParticles: Params error
+b8967 FlareParticles: Scene (%s) not found\n
+b898d FlareParticles: Light (%s) not found\n
+b89e3 MbP?
+b8a04 evente.c
+b8a0d Blad w parametrze w Echo2 {%s}\n
+b8a2d Efekt Echa potrzebuje 320x200x8
+b8a4d Blad w parametrze w Echo2 {%s}\n
+b8a6d Efekt Echa potrzebuje 320x200x8
+b8a8d Blad w parametrze w Echo2 {%s}\n
+b8aad Efekt Echa potrzebuje 320x200x8
+b8acd Blad w parametrze w Echo2 {%s}\n
+b8aed %s %s %s %s
+b8b00 ?Blad w parametrze w Echo2 {%s}\n
+b8b21 Efekt Echa potrzebuje 320x200x8
+b8b44 loadlws.c
+b8b68 process.c
+b8b85 @dispmap.tab
+b8c09 @tried to add non existing do_process\n
+b8c3d zt?frame=%d
+b8c4c rendered=%d
+b8c58 objects calculated=%d/%d
+b8c74 particles(%d)=%d
+b8c88 loaduexp.c
+b8cec flares.c
+b8d0b d@flare1.unr
+b8d18 flare2.unr
+b8d24 matmgr.c
+b8d34 chn.pic
+b8d3c gen_env.png
+b8dac tried to use KF_SLERP, it is disabled!
+b8ec8 particle.c
+b8edc Bad particle size
+b8f80 renderc.c
+b8f8a ffffff
+b8faa RSorting range exceeded (underflow)
+b8fce RSorting range exceeded (overflow)
+b9024 %1.4f %1.4f %1.4f\n
+b9038 %1.4f %1.4f %1.4f\n\n
+b904c %1.4f %1.4f %1.4f %1.4f\n
+b9068 %1.4f %1.4f %1.4f %1.4f\n\n
+b908c X: %4.4f  Y: %4.4f  Z: %4.4f\n
+b90dc 0.90
+b90e4 pngload.c
+b90f0 destination target conversion not available
+b911c BlockSort: alloc error
+b9134 undefined member function called through debug information!
+b9170 ARGB8888
+b9179 ABGR8888
+b9182 BGRA8888
+b918b RGBA8888
+b9194 RGB888
+b919b BGR888
+b91a2 RGB565
+b91a9 BGR565
+b91b0 RGB555
+b91b7 BGR555
+b91be ARGB1555
+b91c7 ABGR1555
+b91d0 RGB332
+b91d7 INDEX8
+b91de GREY8
+b91e4 GRAY8
+b91ea FAKEMODE1A
+b91f5 FAKEMODE1B
+b9200 FAKEMODE1C
+b920b FAKEMODE2A
+b9216 FAKEMODE2B
+b9221 FAKEMODE2C
+b922c FAKEMODE3A
+b9237 FAKEMODE3B
+b9242 FAKEMODE3C
+b924d FAKEMODE1
+b9257 FAKEMODE2
+b9261 FAKEMODE3
+b9274 DIRECT
+b927b INDEXED
+b9283 FAKEMODE
+b928c ptc error: %s\n
+b92a3 Apure virtual function called!
+b92c4 ABNORMAL TERMINATION\n
+b92dc Bogus message code %d
+b92f4 Sorry, there are legal restrictions on arithmetic coding
+b9330 ALIGN_TYPE is wrong, please fix
+b9350 MAX_ALLOC_CHUNK is wrong, please fix
+b9378 Bogus buffer control mode
+b9394 Invalid component ID %d in SOS
+b93b4 IDCT output block size %d not supported
+b93dc Bogus input colorspace
+b93f4 Bogus JPEG colorspace
+b940c Bogus marker length
+b9420 Wrong JPEG library version: library is %d, caller expects %d
+b9460 Sampling factors too large for interleaved scan
+b9490 Invalid memory pool code %d
+b94ac Unsupported JPEG data precision %d
+b94d0 Invalid progressive parameters Ss=%d Se=%d Ah=%d Al=%d
+b9508 Invalid progressive parameters at scan script entry %d
+b9540 Bogus sampling factors
+b9558 Invalid scan script at entry %d
+b9578 Improper call to JPEG library in state %d
+b95a4 JPEG parameter struct mismatch: library thinks size is %u, caller expects %u
+b95f4 Bogus virtual array access
+b9610 Buffer passed to JPEG library is too small
+b963c Suspension not allowed here
+b9658 CCIR601 sampling not implemented yet
+b9680 Too many color components: %d, max %d
+b96a8 Unsupported color conversion request
+b96d0 Bogus DAC index %d
+b96e4 Bogus DAC value 0x%x
+b96fc Bogus DHT counts
+b9710 Bogus DHT index %d
+b9724 Bogus DQT index %d
+b9738 Empty JPEG image (DNL not supported)
+b9760 Read from EMS failed
+b9778 Write to EMS failed
+b978c Didn't expect more than one scan
+b97b0 Input file read error
+b97c8 Output file write error --- out of disk space?
+b97f8 Fractional sampling not implemented yet
+b9820 Huffman code size table overflow
+b9844 Missing Huffman code table entry
+b9868 Maximum supported image dimension is %u pixels
+b9898 Empty input file
+b98ac Premature end of input file
+b98c8 Cannot transcode due to multiple use of quantization table %d
+b9908 Scan script does not transmit all data
+b9930 Invalid color quantization mode change
+b9958 Not implemented yet
+b996c Requested feature was omitted at compile time
+b999c Backing store not supported
+b99b8 Huffman table 0x%02x was not defined
+b99e0 JPEG datastream contains no image
+b9a04 Quantization table 0x%02x was not defined
+b9a30 Not a JPEG file: starts with 0x%02x 0x%02x
+b9a5c Insufficient memory (case %d)
+b9a7c Cannot quantize more than %d color components
+b9aac Cannot quantize to fewer than %d colors
+b9ad4 Cannot quantize to more than %d colors
+b9afc Invalid JPEG file structure: two SOF markers
+b9b2c Invalid JPEG file structure: missing SOS marker
+b9b5c Unsupported JPEG process: SOF type 0x%02x
+b9b88 Invalid JPEG file structure: two SOI markers
+b9bb8 Invalid JPEG file structure: SOS before SOF
+b9be4 Failed to create temporary file %s
+b9c08 Read failed on temporary file
+b9c28 Seek failed on temporary file
+b9c48 Write failed on temporary file --- out of disk space?
+b9c80 Application transferred too few scanlines
+b9cac Unsupported marker type 0x%02x
+b9ccc Virtual array controller messed up
+b9cf0 Image too wide for this implementation
+b9d18 Read from XMS failed
+b9d30 Write to XMS failed
+b9d44 Copyright (C) 1996, Thomas G. Lane
+b9d68 6a  7-Feb-96
+b9d78 Caution: quantization tables are too coarse for baseline JPEG
+b9db8 Adobe APP14 marker: version %d, flags 0x%04x 0x%04x, transform %d
+b9dfc Unknown APP0 marker (not JFIF), length %u
+b9e28 Unknown APP14 marker (not Adobe), length %u
+b9e54 Define Arithmetic Table 0x%02x: 0x%02x
+b9e7c Define Huffman Table 0x%02x
+b9e98 Define Quantization Table %d  precision %d
+b9ec4 Define Restart Interval %u
+b9ee0 Freed EMS handle %u
+b9ef4 Obtained EMS handle %u
+b9f0c End Of Image
+b9f1c         %3d %3d %3d %3d %3d %3d %3d %3d
+b9f44 JFIF APP0 marker, density %dx%d  %d
+b9f68 Warning: thumbnail image size does not match data length %u
+b9fa4 Unknown JFIF minor revision number %d.%02d
+b9fd0     with %d x %d thumbnail image
+b9ff4 Skipping marker 0x%02x, length %u
+ba018 Unexpected marker 0x%02x
+ba034         %4u %4u %4u %4u %4u %4u %4u %4u
+ba05c Quantizing to %d = %d*%d*%d colors
+ba080 Quantizing to %d colors
+ba098 Selected %d colors for quantization
+ba0bc At marker 0x%02x, recovery action %d
+ba0e4 RST%d
+ba0ec Smoothing not supported with nonstandard sampling ratios
+ba128 Start Of Frame 0x%02x: width=%u, height=%u, components=%d
+ba164     Component %d: %dhx%dv q=%d
+ba184 Start of Image
+ba194 Start Of Scan: %d components
+ba1b4     Component %d: dc=%d ac=%d
+ba1d4   Ss=%d, Se=%d, Ah=%d, Al=%d
+ba1f4 Closed temporary file %s
+ba210 Opened temporary file %s
+ba22c Unrecognized component IDs %d %d %d, assuming YCbCr
+ba260 Freed XMS handle %u
+ba274 Obtained XMS handle %u
+ba28c Unknown Adobe color transform code %d
+ba2b4 Inconsistent progression sequence for component %d coefficient %d
+ba2f8 Corrupt JPEG data: %u extraneous bytes before marker 0x%02x
+ba334 Corrupt JPEG data: premature end of data segment
+ba368 Corrupt JPEG data: bad Huffman code
+ba38c Warning: unknown JFIF revision number %d.%02d
+ba3bc Premature end of JPEG file
+ba3d8 Corrupt JPEG data: found marker 0x%02x instead of RST%d
+ba410 Invalid SOS parameters for sequential JPEG
+ba43c Application transferred too many scanlines
+ba46c compiler error: eliminated virtual function call!
+ba4a0 INTERWAVE
+ba4aa ULTRASND
+ba4b4 ULTRASND
+ba4c0 ULTRASND
+ba500 ULTRA16
+ba508 ULTRA16
+ba510 ULTRASND
+ba51c ULTRASND
+ba528 BLASTER
+ba530 BLASTER
+ba538 BLASTER
+ba540   Indoor Music System v0.6       SETUP     (c) '94-97  Niklas Beisert / pascal  
+ba591   2*return:start, 2*esc:quit, 
+ba5b2 :select (
+ba5c2 :select (
+ba5d0 return
+ba5e5 , digit:enter
+ba5f3 digit
+ba666 normal
+ba685 inverted
+ba692 inverted headphones
+ba6aa mono
+ba6b2 headphones
+ba6c0 normal
+ba6c7 suppress
+ba6d4 -suppress half
+ba6e7 normal
+ba6f1 medium
+ba6fb full
+ba700  device:
+ba709    port:
+ba712   port2:
+ba71b     dma:
+ba724    dma2:
+ba72d     irq:
+ba736    irq2:
+ba73f    rate:
+ba748  16 bit:
+ba751  stereo:
+ba75a intrplt:
+ba763 amplify:
+ba76c panning:
+ba775  reverb:
+ba77e  chorus:
+ba787    srnd:
+ba7a2 0@%lf
+ba7aa ERROR
+ba7b0 ASIN
+ba7b5 ACOS
+ba7ba ATAN
+ba7cb FABS
+ba7d4 SQRT
+ba7dd FLOOR
+ba7e3 CEIL
+ba7f0 CLIP10
+ba7f7 CLIP11
+ba802 CLIP
+ba807 DELTA
+ba80d ERROR - wrong param string
+ba82a FRAME
+ba837 3 <%s>\n
+ba83f Eval Stack Underflow
+ba854 Eval Stack Overflow
+ba86c wspeed.tga
+ba87a read_table failed, name '%s'\n
+ba90a @wave: time_offset invalid\n
+ba926 wave: image size is %dx%d, not %dx%d.  ignoring.\n
+ba95e p?UUUUUU
+ba967 ?time_offset invalid\n
+ba983 p?Wave: no luck, only asm drawer available...\n
+ba9b4 silvere\cppwraps.c
+ba9cb =ffffff
+ba9fb =ffffff
+baa3b =333333
+baa4b @333333
+baa53 ?333333
+baa9e Q@cellrd: image size is %dx%d, not %dx%d.  ignoring.\n
+baada p?UUUUUU
+baafd 1w-!
+bab79 1w-!
+bac43 ?cfg_file.c
+bac50 Cannot read file %s\n
+bac68 Warning: Config File EOF
+bac8a _@Point  (origin)  = %f,%f,%f\n
+bacac Point  (rotated) = %f,%f,%f\n
+baccc Normal (origin)  = %f,%f,%f\n
+bacec Point  (persp)   = %f,%f\n
+bad08 U,V cords.       = %d,%d\n
+bad24 Colour           = %d\n
+bad3c Pyramid          = %d\n
+bad54 present
+bad5c not present
+bad68 Material %s \n
+bad78 Clipped %s \n
+bad88  Points = %d\n
+bad98 Point[%d] %6.2f,%6.2f,%6.2f Rot %6.2f,%6.2f,%6.2f Per %6.2f,%6.2f UV %d,%d Pyr %d\n
+bae44 Mb@?
+bae5f ?333333
+bae67 ?UUUUUU
+baefc Mb0?
+baf0f ?333333
+baf17 ?UUUUUU
+baf28 rhq?
+baf3e 1w-!_?
+baf5b ?333333
+baf63 ?UUUUUU
+baffb ?calcbump.c
+bb023 ?O=%6.2f,%6.2f,%6.2f R=%6.2f\n
+bb044 Bbox:\n
+bb04c  min. X=%f Y=%f Z=%f\n
+bb064  max. X=%f Y=%f Z=%f\n
+bb07c  P[%d]. X=%f Y=%f Z=%f\n
+bb094 Not enough memory to allocate file structures\n
+bb0c4 Incompatible libpng version in application and library
+bb0fc 1.0.4
+bb104 zlib memory error
+bb118 zlib version error
+bb12c Unknown zlib error
+bb140 zlib memory
+bb14c zlib version
+bb15c Not a PNG file
+bb16c PNG file corrupted by ASCII conversion
+bb194 Missing IHDR before IDAT
+bb1b0 Missing PLTE before IDAT
+bb1cc Invalid attempt to read row data
+bb1f0 Not enough image data
+bb208 Extra compressed data
+bb220 Decompression error
+bb234 Too many IDAT's found
+bb24c Too many bytes for PNG signature.
+bb270 Failure #1: allocating context table!
+bb296 Failure #2: allocating null table!
+bb2b9 Failure #3: allocating null table!
+bb2dc Failure #4: allocating null table!
+bb2ff Failure #5: allocating null table!
+bb322 Failure #6: allocating new table
+bb343 Failure #7: allocating new table
+bb364 Failure #8: allocating new table
+bb385 Error #9: reallocating table space!
+bb3a9 Error #10: reallocating table space!
+bb3ce Error #11: reallocating stats space!
+bb3f4 Bad input file\n
+bb404 VESA
+bb413 @@VESA
+bb44a @@Floating-point support not loaded\n
+bb470 JPEGMEM
+bb478 %ld%c
+bb480 stack data has been corrupted!
+bb49f violation of function exception specification!
+bb4ce throw while "terminate" function active!
+bb4f7 throw during destructor while unwinding stack to catch exception!
+bb539 throw while "terminate" function active!
+bb562 throw during construction of exception!
+bb58a throw during destructor for handled exception!
+bb5b9 re-throw when no exception handler active!
+bb5e4 no handler active to catch thrown object!
+bb60e re-throw when no exception handler active!
+bb639 no handler active to catch thrown object!
+bb663 system exception! code = 0x00000000
+bb68e UUUUUU
+bb6af ?Out of Memory
+bb6c0 libpng error: %s\n
+bb6d4 libpng warning: %s\n
+bb6e8 1.0.4
+bb6f0 unknown compression method
+bb70c invalid window size
+bb720 incorrect header check
+bb738 need dictionary
+bb748 incorrect data check
+bb760 Call to NULL read function
+bb77c Read Error
+bb788 Can't discard critical data on CRC error.
+bb7b4 CRC error in %s
+bb7c4 Out of place IHDR
+bb7d8 Invalid IHDR chunk
+bb7ec Invalid image size in IHDR
+bb808 Invalid bit depth in IHDR
+bb824 Invalid color type in IHDR
+bb840 Invalid color type/bit depth combination in IHDR
+bb874 Unknown interlace method in IHDR
+bb898 Unknown compression method in IHDR
+bb8bc Unknown filter method in IHDR
+bb8dc Missing IHDR before PLTE
+bb8f8 Invalid PLTE after IDAT
+bb910 Duplicate PLTE chunk
+bb928 Invalid palette chunk
+bb940 No image in file
+bb954 Incorrect IEND chunk length
+bb970 Missing IHDR before gAMA
+bb98c Invalid gAMA after IDAT
+bb9a4 Out of place gAMA chunk
+bb9bc Duplicate gAMA chunk
+bb9d4 Incorrect gAMA chunk length
+bb9f2 '7Missing IHDR before sBIT
+bba10 Invalid sBIT after IDAT
+bba28 Out of place sBIT chunk
+bba40 Duplicate sBIT chunk
+bba58 Incorrect sBIT chunk length
+bba74 Invalid cHRM after IDAT
+bba8c Missing PLTE before cHRM
+bbaa8 Duplicate cHRM chunk
+bbac0 Incorrect cHRM chunk length
+bbadc Invalid cHRM white point
+bbaf8 Invalid cHRM red point
+bbb10 Invalid cHRM green point
+bbb2c Invalid cHRM blue point
+bbb4f ?Missing IHDR before tRNS
+bbb6c Invalid tRNS after IDAT
+bbb84 Duplcate tRNS chunk
+bbb98 Missing PLTE before tRNS
+bbbb4 Incorrect tRNS chunk length
+bbbd0 tRNS chunk not allowed with alpha channel
+bbbfc Missing IHDR before bKGD
+bbc18 Invalid bKGD after IDAT
+bbc30 Missing PLTE before bKGD
+bbc4c Duplicate bKGD chunk
+bbc64 Incorrect bKGD chunk length
+bbc80 Missing IHDR before hIST
+bbc9c Invalid hIST after IDAT
+bbcb4 Missing PLTE before hIST
+bbcd0 Duplicate hIST chunk
+bbce8 Incorrect hIST chunk length
+bbd04 Missing IHDR before pHYS
+bbd20 Invalid pHYS after IDAT
+bbd38 Duplicate pHYS chunk
+bbd50 Incorrect pHYs chunk length
+bbd6c Missing IHDR before oFFs
+bbd88 Invalid oFFs after IDAT
+bbda0 Duplicate oFFs chunk
+bbdb8 Incorrect oFFs chunk length
+bbdd4 Out of place tIME chunk
+bbdec Duplicate tIME chunk
+bbe04 Incorrect tIME chunk length
+bbe20 Missing IHDR before tEXt
+bbe3c Missing IHDR before zTXt
+bbe58 Zero length zTXt chunk
+bbe70 Unknown zTXt compression type
+bbe90 zTXt decompression error
+bbeac Unknown critical chunk %s
+bbec8 Invalid chunk type 0x%02X 0x%02X 0x%02X 0x%02X
+bbef8 Bad adaptive filter type
+bbf14 Not enough image data
+bbf2c Extra compressed data
+bbf44 Decompression Error
+bbf58 Extra compression data
+bbf70 Application must supply a known background gamma
+bbff7 Fno memory left to handle thrown exception!
+bc029 yE>acos
+bc031 asin
+bc036 sqrt
+bc03f cosh
+bc044 sinh
+bc04d acosh
+bc053 log2
+bc05c log10
+bc062 atanh
+bc068 atan2
+bc06e ipow
+bc073 dpowi
+bc092 cotan
+bc098 invalid block type
+bc0ac invalid stored block lengths
+bc0cc too many length or distance symbols
+bc0f0 invalid bit length repeat
+bc10c need dictionary
+bc11c stream end
+bc12c file error
+bc138 stream error
+bc148 data error
+bc154 insufficient memory
+bc168 buffer error
+bc178 incompatible version
+bc190 1.0.4
+bc1ab ?u='
+bc1ba \n?u=
+bc1bf ?return from "terminate" function!
+bc1e4 return from "unexpected" function!
+bc208 Domain error
+bc215 Argument singularity
+bc22a Overflow range error
+bc23f Underflow range error
+bc255 Total loss of significance
+bc270 Partial loss of significance
+bc28d  in 
+bc294 invalid literal/length code
+bc2b0 invalid distance code
+bc2c8 oversubscribed dynamic bit lengths tree
+bc2f0 incomplete dynamic bit lengths tree
+bc314 oversubscribed literal/length tree
+bc338 incomplete literal/length tree
+bc358 oversubscribed literal/length tree
+bc37c incomplete literal/length tree
+bc39c invalid distance code
+bc3b4 invalid literal/length code
+bccbd 8888888888
+bccce XXXXXXHHHHHHHHHHHHHHHHHHHH
+bce20 =@[V6
+bcef0 Fatal error: out of memory\n
+bcf2f ?16 bit per pixel                linear buffer 
+bcf62 15 bit per pixel                linear buffer 
+bcf94 not available                                 
+bcfc6 not available                                 
+bcff8 not available                                 
+bd02a not available                                 
+bd05c not available                                 
+bd08e not available                                 
+bd0c0 16 bit per pixel                page switching
+bd0f2 15 bit per pixel                page switching
+bd124 16 bit per pixel, double pixel  page switching
+bd156 15 bit per pixel, double pixel  page switching
+bd188 fake hi-color                   x-mode        
+bd1ba not available                                 
+bd1ec not available                                 
+bd21e not available                                 
+bd250  Select video mode 
+bd2d0 fillbuffer
+bd2e4 buffer_and
+bd2f8 scene
+bd30c zoom
+bd320 echo
+bd334 blit
+bd348 palette
+bd35c surfcopy
+bd370 swapsurf
+bd384 echocml32
+bd398 partmag2d
+bd3ac fade
+bd3c0 xfade
+bd3d4 afade
+bd3e8 lowpass
+bd3fc colordistort
+bd410 colormap
+bd424 bomb
+bd438 dither
+bd44c ditherfs
+bd460 edges
+bd474 matrix
+bd488 grid
+bd49c colorgrid
+bd4b0 blend
+bd4c4 wave
+bd4d8 cellrd
+bd4ec gfeed
+bd500 interpolator
+bd514 zbuffer
+bd528 showz
+bd53c volume3d
+bd550 clearvolume
+bd564 copyvolume
+bd578 metaballs
+bd58c marchingcubes
+bd5a0 morphvolume
+bd5b4 addvolume
+bd5c8 subvolume
+bd5dc mulvolume
+bd5f0 fadevolume
+bd604 plasma1volume
+bd618 volumesprites
+bd62c fakezbuffer
+bd640 boxfilter
+bd654 parasite
+bd668 reebok
+bd67c mapimage
+bd690 doubleimage
+bd6a4 displace247
+bd6b8 displacenorm
+bd6cc echo2
+bd6e0 echo3
+bd6f4 echo4
+bd708 echo5
+bd71c echo6
+bd730 tunnel
+bd744 playani
+bd758 playrgbani
+bd76c radialblur
+bd780 setupflares
+bd794 flareparticles
+bd7a8 rotozoom
+c2e33 ?333?
+c2e43 >333?
+c2e4b ?333?
+c2e5b ?333?
+c32b3 >0Lf?
+c32fa X?-!
+c3305 lV>xz
+c3327 >;pN
+c333a <? A
+c33a6 w?I.
+c33db ?TRG?{
+c3401 sF>$
+c3419 A@?:#j
+c342e \n?HP
+c3482 j>'1h?
+c348e v?33
+c3513 =X94
+c357e Y?;pN
+c3599 mt?4
+c35b4 xzE?
+c35ed oA?)\O?io
+c3625 1w?-!_
+c36e6 7?|aR?
+c36fa \>;p
+c37c0 9EG>
+c37d4 ]mE?
+c37f1 u1?+
+c3802 Q?vO>?8g
+c3829 OO?p_
+c385a d?)\
+c386a P?<NQ
+c38ca W? cn
+c38d3 <,e9?
+c38de <?RI
+c3900 5^Z?
+c390a y? cn=
+c3935 v>>(~
+c3965 <l?)
+c3975 e7?l
+c3980 /nC?
+c39b8 F%5?
+c39f4 shQ?
+c3a06 T?n4
+c3a42 h??5
+c3a65 =y?8g
+c3a6d "[>(~
+c3a82 g?k+v
+c3b2a Y?<N
+c3b45 aC?O@
+c3b65 >?,ey?
+c3b7c W[Q?
+c3b8a  ?vO~?
+c3bb2 t>HP
+c3bf7 <t$7
+c3c25 LU?RI
+c3ca9 U??B`e
+c3d0c Qkz?
+c3d1f >}?u?"l
+c3d27 ?Zd;
+c3d49 rH?t$
+c3dae d?9EG
+c3dc7 >iop>~
+c3e02 d?L7i?
+c3e36 d>B`
+c3ea3 >KYf
+c3eb1 [`?o
+c3eb9 !}=d]\>
+c3ec1 N@>~
+c3f2a b> A
+c3f36 d?_)K
+c3f3c R'`?>
+c3f96 c? cN?
+c3ff9 FE?<N
+c4019 "[>N
+c404d Vl>io
+c4059 0Y?Y
+c40bb >}?5?
+c4106 :?*:
+c41c2 U?J{c
+c41d6 p?lxz>
+c4205 a!>?5>?
+c4211 \m>9EG
+c42e6 Stack Overflow!\n
+c48cd None
+c4935 AMD InterWave
+c4965 Gravis UltraSound
+c4995 Gravis UltraSound
+c49d1 }"VI
+c49e5 Windows Sound System
+c4a15 Double GUS
+c4a45 -6<@BEGIJLMNOPQRSTTUVVWWXXYYZZ[[\\\]]^^^___````aaaabbbbccccddddeeeeeffffffgggggghhhhhhiiiiiiijjjjjjjkkkkkkkkllllllllmmmm
+c4d92 (,Tr;8(
+c4e49 SoundBlaster 32
+c4e99 SoundBlaster
+c4ed5 ESS AudioDrive 688
+c5219 Mixer
+cd754 0.90
+cd75a PNG\n
+cd760 \nIHDRIDATIENDPLTEgAMAsBITcHRMtRNSbKGDhISTtEXtzTXtpHYsoFFstIME
+cdd88 UUUU
+cdd8f ?3333
+cddc8 ^Cy
+ce2a0 t+;W
+ce2a5 r&+G
+ce2c1 s\n+G
+ce326 W0+W t(|
+ce356 W4+W$t(|
+ce458 }(;G
+cea36 t+;W
+cea3b r&+G
+cea57 s\n+G
+cea9c UWQf
+ceaeb }$;G
+cedaa *>%I
+d47e4 Error decoding zTXt chunk
+d48a1  n;^
+d4961 Qkkbal
+d49d7 3_L\n
+d4a48 >jm
+d4a6f i]Wb
+d4baf 9a&g
+d4bb8 MGiI
+d4bbd wn>Jj
+d4bff #.zf
+d4c0d +o*7
+d5d60  inflate 1.0.4 Copyright 1995-1996 Mark Adler 
+d6488 3n{a
+d64b8 j^^?
+d64eb +8c

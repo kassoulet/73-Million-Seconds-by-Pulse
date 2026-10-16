@@ -1,0 +1,119 @@
+<section class="fx" id="fx-volumes-marchingcubes">
+<h3>marchingcubes &mdash; polygonising a 16&times;16&times;16 field every frame</h3>
+<p>The cube sequence of the demo (about 106&ndash;121 s) is a real-time <em>marching cubes</em> surface. A scalar field of 16&times;16&times;16 floats
+(see <code>metaballs</code>, <code>morphvolume</code>, <code>plasma1volume</code>) is turned into triangles with the iso-level
+<code>0.5</code>, and the triangles are poured straight into the mesh of an object of the loaded <code>.exp</code> scene
+(<code>jabole box02 OurVolume 1 0.5</code> = scene, object, volume, smooth-shading flag, threshold expression).
+The polygons keep the material of the first polygon of the original object; only vertices, normals and the triangle list are replaced.</p>
+<p>The routine at <code>0x57c98</code> is the hand-written, optimised x87 version of a plain C routine that is still in the binary at <code>0x5800</code>.
+It scans the 4096 samples once (z, then y, then x). For every sample it looks at the three edges that arrive from the
+<em>lower</em> neighbours (x&minus;1, y&minus;1, z&minus;1). An edge carries a vertex when exactly one of its ends is &ge; the threshold.
+The vertex is placed by linear interpolation, and its <strong>normal</strong> is the interpolated central-difference gradient of the
+field, normalised with a table-driven <code>1/sqrt</code>: the exponent is halved with integer arithmetic, the mantissa comes from a
+128-byte table built at start-up (<code>0x6258</code>), and one Newton&ndash;Raphson step <code>r&middot;0.5&middot;(3&minus;r&sup2;&middot;|g|&sup2;)</code> finishes it.
+Vertices live in three arrays of 4096 slots of <code>0x60</code> bytes (edges along x, y and z); the static coordinates of a slot are filled once by <code>0x5fc4</code>,
+every frame only the coordinate along the edge and the normal are rewritten, so triangles can simply index those slots.</p>
+<p>Triangles come from the classic 256-case Lorensen/Bourke table (data segment <code>0xbda50</code>, edge numbers 0..11 mapped to
+&quot;array, dx, dy, dz&quot; by <code>0xbda20</code> and pre-multiplied by 0x60). The case index is built from two 4-bit masks: the inside flags of the 2&times;2 samples
+of the current z plane and the mask of the plane below, which the code remembers in a 4096-entry scratch array (its address is patched into the
+instructions at run time &mdash; self-modifying code). The face normal stored with each polygon is the cross product of two edges.
+Floats are compared as signed integers (<code>cmp eax, ecx</code>), which is valid for positive IEEE numbers and saves the FPU compare.</p>
+<h4>Edge test and interpolation (x edge, original 0x57cd4)</h4>
+<pre class="asm">
+57cd4  mov eax, dword [esi + 0x440]      ; v0 = vol[x-1]   (esi = &amp;vol[s] - 0x444, so +0x444 is the sample itself)
+57cda  mov ebx, dword [esi + 0x444]      ; v1 = vol[x]
+57ce0  cmp eax, ecx                      ; ecx = bit pattern of the threshold
+57ce2  jl  0x57cee
+57ce4  cmp ebx, ecx                      ; v0 >= thr: need v1 < thr
+57ce6  jge 0x57e0f                       ;   both inside -> no vertex
+57cec  jmp 0x57cf6
+57cee  cmp ebx, ecx                      ; v0 < thr: need v1 >= thr
+57cf0  jl  0x57e0f
+57cf6  fld dword [esi + 0x444]           ; crossing: t = (v1 - thr) / (v1 - v0)
+57cfc  fsub dword [0x100a80]             ;   [0x100a80] = threshold as float (the expression of the event)
+57d02  fld dword [esi + 0x444]
+57d08  fsub dword [esi + 0x440]
+57d0e  fdivp st(1)
+57d10  lea ebp, [esi + 0x444]
+57d16  push ebp
+57d17  lea ebp, [esi + 0x440]
+57d1d  mov eax, edx                      ; al = x, ah = y, edx&gt;&gt;16 = z
+57d1f  dec al                            ; gradient of sample x-1 ... (call 0x581f2 returns -dV/dx,y,z)
+</pre>
+<h4>Fast normalisation (original 0x57d63)</h4>
+<pre class="asm">
+57d63  fstp dword [0xc8850]              ; |g|^2 as a float
+57d69  mov eax, dword [0xc8850]
+57d6e  mov ebp, 0xbe000000
+57d73  shr eax, 0x11
+57d76  mov edx, dword [0xc8850]
+57d7c  and eax, 0x7f                     ; top 7 mantissa bits -> table index
+57d7f  and edx, 0x7f800000               ; exponent field
+57d85  xor ebx, ebx
+57d87  sub ebp, edx                      ; exponent of 1/sqrt = (0xbe000000 - e) / 2
+57d89  shr ebp, 1
+57d8b  mov bl, byte [eax + 0xc1a58]      ; 8 mantissa bits of 1/sqrt from the 128-byte table
+57d91  shl ebx, 0xf
+57d94  pop edx
+57d95  mov eax, edx
+57d97  and ebp, 0x7f800000
+57d9d  nop
+57d9e  or  ebp, ebx
+57da0  mov dword [0xc8858], ebp          ; r ~ 1/sqrt(|g|^2), 8 bits
+57db1  fld dword [0xc8858]               ; ... then k = r*0.5*(3 - r*r*|g|^2), normal = g*k
+</pre>
+<h4>Triangle emission (original 0x580c0 and 0x58110)</h4>
+<pre class="asm">
+580c0  mov eax, dword [esi + 0x404]       ; value at (x, y-1)
+580c6  mov ebx, dword [esi + 0x400]       ; value at (x-1, y-1)
+580cc  cmp ecx, eax                       ; build the 4-bit mask: bit = (thr &lt; value)
+580ce  jge 0x580d2
+580d0  inc ebp
+...
+580e2  mov dword [esi + 0xfca80], ebp     ; remember the mask of this plane (address patched at run time)
+580e8  jb  0x581bd                        ; z == 0: nothing below, no triangles
+580ee  shl ebp, 4
+580f1  mov eax, dword [esi + 0xfca80]     ; mask of the plane below
+580f7  or  ebp, eax                       ; case = upper &lt;&lt; 4 | lower
+580f9  je  0x581bd                        ; 0x00 and 0xff: no triangle
+580ff  cmp ebp, 0xff
+58105  je  0x581bd
+5810b  shl ebp, 6                         ; 64 bytes per case
+58110  mov edx, dword [0xc8840]           ; output pointer (0x3c bytes per polygon)
+58116  mov eax, 3                         ; polygon has 3 vertices ([edx+0x10])
+5811b  mov ebx, dword [ebp + 0xbda54]      ; the three vertex slots of the triangle
+58124  mov ecx, dword [ebp + 0xbda58]
+5812a  mov eax, dword [ebp + 0xbda50]
+58130  add ebx, edi                       ; + address of the cell's lowest corner
+58132  add eax, edi
+58134  add ecx, edi
+58136  fld dword [ebx]                    ; face normal = (b-a) x (c-a)
+...
+58176  fstp dword [edx + 0x1c]
+5817d  fstp dword [edx + 0x18]
+58180  fstp dword [edx + 0x14]
+58186  mov dword [edx + 0x30], eax        ; polygon -> vertex pointers
+58189  mov dword [edx + 0x34], ebx
+5818c  mov dword [edx + 0x38], ecx
+581a1  add edx, 0x3c
+581a9  cmp dword [ebp + 0xbda50], eax     ; -1 terminates the list of triangles of this case
+581af  jne 0x58116
+</pre>
+<h4>JavaScript</h4>
+<pre class="js">
+// per sample (x,y,z), s = x + 16*y + 256*z
+if (x &gt; 0) { const b = vi[s-1]; if (b &lt; T ? a &gt;= T : a &lt; T) this._edge(vol, s, s-1, 0, s-1, x, y, z, thr); }
+...
+const m = ((T &lt; vi[s-1]) &lt;&lt; 3) | ((T &lt; a) &lt;&lt; 2) | ((T &lt; vi[s-16]) &lt;&lt; 1) | (T &lt; vi[s-17] ? 1 : 0);
+mask[s + 256] = m;                      // read back 256 samples later, when the next z plane arrives
+const cs = (m &lt;&lt; 4) | mask[s];
+for (const e of TRI[cs]) out[n++] = e + (s - 273);   // 273 = 256+16+1 = slot of the cell's lowest corner
+</pre>
+<dl class="facts">
+<dt>script</dt><dd><code>marchingcubes mtb9 {} {} {jabole box02 OurVolume 1 0.5}</code>, then <code>fadevolume OurVolume OurVolume -1</code> and a second pass for <code>box01</code> (the negative lobes of the field), layer 1</dd>
+<dt>time</dt><dd>order 15&ndash;17, about 106&ndash;121 s</dd>
+<dt>code</dt><dd>init <code>0x17a7a</code>, run <code>0x17ce3</code>, mesh set-up <code>0x166a8</code>, polygoniser <code>0x57c98</code>, gradient <code>0x581f2</code>, tables <code>0xbda50</code> / <code>0xc1a58</code></dd>
+<dt>limits</dt><dd>4000 polygons (<code>0xfa0</code>) and 12288 vertices (3&times;4096) per object; the original does not check for overflow</dd>
+<dt>port</dt><dd>bit-identical to the original on 9 test volumes (triangle lists, vertex positions, normals, face normals), see <code>docs/js/fx/volumes.js</code></dd>
+</dl>
+</section>

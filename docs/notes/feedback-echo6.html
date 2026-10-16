@@ -1,0 +1,67 @@
+<section class="fx" id="fx-echo6">
+<h3>echo6 - wobbling additive sphere</h3>
+<p>Same engine as echo4 (see there for the clipper, rasteriser and the additive drawing) but the object is a sphere: an octahedron with vertices at +-300 on the axes, subdivided four times by the integer routine 0x8b218/0x8b060 (every edge midpoint is renormalised to radius 300, 1026 vertices, 2048 triangles). The 8-bit buffer receives the additive, textured (2500 blobs of radius 5, amplitude 12) triangles; there is no smear here - the script follows with <code>lowpass</code> and <code>radialblur</code> instead.</p>
+<p>Every frame the sphere is first transformed with an X/Y/Z rotation and the non-uniform scale (2, 0.7, 1), then each vertex is scaled radially by <code>sum of three sines</code> of its own integer coordinates (<code>sin(x/40.84 + P)*0.3 + 2/3</code> and likewise for y with P*0.8 and z with P*1.3, P advancing with the clock): the wobble. A second small rotation (angles are sines of the clock, about 0.8 rad) and a translation by 1000 units place it in front of the camera. Faces whose triple product with the eye vector is negative are skipped (back-face culling, 0x599f8), the rest is drawn by the shared pipeline with texture coordinates <code>(x,y)*0.0019</code> of the unwobbled vertex plus the scroll value.</p>
+<h4>Midpoint of an edge on the sphere (0x8b087)</h4>
+<pre class="asm">8b087  sar eax, 0x10; midpoint of an edge: (a+b)/2 with truncation toward zero ...
+8b08a  sar edx, 0x10
+8b08d  add edx, eax
+8b08f  mov eax, edx
+8b091  sar edx, 0x1f
+8b094  sub eax, edx
+8b096  sar eax, 1
+8b098  mov dword ptr [esp + 0x10], eax
+8b09c  mov edx, dword ptr [ecx*2 + 0x17d0e4]</pre>
+<h4>Per vertex wobble (0x5c7da)</h4>
+<pre class="asm">5c7da  fild word ptr [ebp - 0xc]; ix = (int16) trunc(vertex.x)
+5c7dd  fdiv dword ptr [0xc8aa4]; / 40.84
+5c7e3  fadd dword ptr [0xc8aa8]; + phase
+5c7e9  sub esp, 8
+5c7ec  fstp qword ptr [esp]
+5c7ef  call 0x4f529; sin
+5c7f4  fmul qword ptr [0xbaf5c]; * 0.3 (+ 2/3 below), once for x, y and z  -&gt; radial scale of this vertex</pre>
+<h4>Back-face test (0x59a0e)</h4>
+<pre class="asm">59a0e  mov eax, dword ptr [edx + 8]; A = vertex 2, B = vertex 3, C = vertex 1 (camera space, the eye is the origin)
+59a11  mov ebx, dword ptr [edx + 0xc]
+59a14  fld dword ptr [eax + 4]
+59a17  fmul dword ptr [ebx + 8]
+59a1a  fld dword ptr [eax + 8]
+59a1d  fmul dword ptr [ebx + 4]
+59a20  fsubp st(1)
+59a22  mov ecx, dword ptr [edx + 4]
+59a25  fmul dword ptr [ecx]
+59a27  fld dword ptr [eax]
+59a29  fmul dword ptr [ebx + 8]
+59a2c  fld dword ptr [eax + 8]
+59a2f  fmul dword ptr [ebx]
+59a31  fsubp st(1)
+59a33  fmul dword ptr [ecx + 4]
+59a36  fsubp st(1)
+59a38  fld dword ptr [eax + 4]
+59a3b  fmul dword ptr [ebx]
+59a3d  fld dword ptr [eax]
+59a3f  fmul dword ptr [ebx + 4]
+59a42  fsubp st(1)
+59a44  fmul dword ptr [ecx + 8]
+59a47  fcompp; C . (A x B) compared with 0 ...
+59a49  fnstsw ax
+59a4b  sahf
+59a4c  seta al; ... culled if the triple product is negative
+59a4f  and eax, 0xff
+59a54  mov dword ptr [edx + 0x34], eax; flag stored in the face
+59a57  jne 0x59aa2</pre>
+<h4>Port</h4>
+<pre class="js">// one vertex: three sines of its own integer coordinates scale it radially
+const t1 = Math.sin((x|0)/D + P ) * 0.3 + 2/3;
+const t2 = Math.sin((y|0)/D + P2) * 0.3 + 2/3 + t1;
+const s  = f32(Math.sin((z|0)/D + P3) * 0.3 + 2/3 + t2);
+w[o] *= s; w[o+1] *= s; w[o+2] *= s;
+// back face: skip if  Cx*(Ay*Bz - Az*By) - Cy*(Ax*Bz - Az*Bx) - Cz*(Ay*Bx - Ax*By) &lt; 0</pre>
+<dl class="facts">
+<dt>script</dt><dd><code>echo6 nazwa {SCREEN8} {SCREEN8} {Frame*0.5}</code> after <code>fillbuffer</code>, then lowpass 0.85, radialblur, palette green2.pal, fade</dd>
+<dt>buffers</dt><dd>8 bit 320x200, in/out</dd>
+<dt>timeline</dt><dd>order 19 - 22 (t = 134.8 - 165 s)</dd>
+<dt>original</dt><dd>init 0x1bcfa (0x5c40f builds the 2048 triangle sphere + texture 0x16c7b0), run 0x1bd88 -> 0x5c8a5, wobble 0x5c6ff, cull + buckets 0x599f8, draw 0x59df0</dd>
+<dt>verified</dt><dd>4 consecutive frames of the original: 0 of 64000 bytes differ; mesh = vertex/face lists identical to the original (1026 / 2048); texture 65536/65536 bytes identical</dd>
+</dl>
+</section>

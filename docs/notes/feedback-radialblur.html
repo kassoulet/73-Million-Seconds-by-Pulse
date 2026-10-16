@@ -1,0 +1,106 @@
+<section class="fx" id="fx-radialblur">
+<h3>radialblur - in-place zoom feedback on an 8 bit buffer</h3>
+<p>Every frame each pixel of the 320x200 index buffer is replaced by itself plus a fraction of the picture sampled a little closer to (or farther from) a centre point. Repeated frame after frame this smears bright areas into long streaks that fly towards the centre: the classic "radial blur / zoom feedback" of 1998. There is no second buffer: the sampled pixels come from the very buffer that is being written, and the four quadrants are processed outward from the centre, so a pixel samples neighbours that were <em>already</em> blurred in this very pass and the streaks are propagated across the whole screen in one frame.</p>
+<p>The maths is plain 26.6 fixed point. Two tables are rebuilt every frame (one entry per column and per row): <code>xtab[x] = trunc((x-cx)*64*step)</code> and <code>ytab[y] = trunc((y-cy)*64*step*5/6)</code>, so the sample position is <code>p + (p-c)*step</code> with a 6 bit sub-pixel fraction. The bilinear interpolation does not multiply at all: a 32 KB table <code>T[f][d] = trunc(d*f/64)</code> (64 fractions x 512 signed differences, built once at 0x70fc) gives <code>a + T[f][b-a]</code> for each of the three lerps. The result is scaled by a 256 byte table <code>att[k] = round(k*strength)</code> and added to the destination with unsigned saturation (<code>add / sbb / or</code>).</p>
+<p>Two details of the original that the port keeps: the script command <code>controlfloat</code> writes a global that only radialblur reads - while it is positive it <em>replaces</em> the strength expression and is multiplied by 0.8 on every call, a beat "kick" that decays; and after the four passes a final loop averages the column left of the centre (<code>p[x-1] = (p[x]+p[x-2])/2</code>) to hide the seam. Palettes are applied later by a separate <code>palette</code> effect, the buffer only holds indices.</p>
+<h4>Column table (0x6fd0): fixed-point offsets</h4>
+<pre class="asm">700c  fild dword ptr [esp + 0x14]; i = 0..319
+7010  fsub st(1); i - cx
+7012  fmul st(2); * 64   (26.6 fixed point)
+7014  fmul st(3); * step
+7016  mov esi, dword ptr [esp + 0x14]
+701a  add edx, 4
+701d  inc esi
+701e  call 0x1ed6a; ftol: truncate toward zero
+7023  fistp dword ptr [esp]
+7026  mov eax, dword ptr [esp]
+7029  mov dword ptr [esp + 0x14], esi
+702d  mov dword ptr [edx - 4], eax; xtab[i] = ftol((i-cx)*64*step)  (0x101e24)
+7030  cmp esi, 0x140
+7036  jl 0x700c</pre>
+<h4>Inner loop of the kernel (0x35fec): one pixel</h4>
+<pre class="asm">35fec  mov ebp, dword ptr [0xc4718]; x offset table
+35ff2  mov edx, dword ptr [ebp + ecx*4]; edx = xtab[x]  (26.6)
+35ff6  mov ebx, edx
+35ff8  and ebx, 0x3f
+35ffb  shl ebx, 9
+35ffe  mov dword ptr [0xc470c], ebx; fx*512 -&gt; row of the 64 x 512 byte &quot;d*f/64&quot; table
+36004  sar edx, 6; integer part of the x offset
+36007  xor eax, eax
+36009  xor ebx, ebx
+3600b  mov al, byte ptr [esi + edx]; a = p[0]
+3600e  mov bl, byte ptr [esi + edx + 0x140]; c = p[+320]  (pixel below)
+36015  push ecx
+36016  push edx
+36017  xor ecx, ecx
+36019  xor edx, edx
+3601b  mov dl, bl
+3601d  mov cl, al
+3601f  sub edx, ecx; d = c - a  (signed, -255..255)
+36021  mov ebp, dword ptr [0xc4710]; fy*512
+36027  add ebp, dword ptr [0xc482c]; + centre of the table (0xc482c = 0x102424)
+3602d  add al, byte ptr [ebp + edx]; va = a + trunc(d*fy/64)   (table lookup, no multiply)
+36031  pop edx
+36032  push eax
+36033  xor eax, eax
+36035  xor ebx, ebx
+36037  mov al, byte ptr [esi + edx + 1]; b = p[+1]
+3603b  mov bl, byte ptr [esi + edx + 0x141]; d = p[+321]
+36042  xor ecx, ecx
+36044  xor edx, edx
+36046  mov dl, bl
+36048  mov cl, al
+3604a  sub edx, ecx
+3604c  mov ebp, dword ptr [0xc4710]
+36052  add ebp, dword ptr [0xc482c]
+36058  add al, byte ptr [ebp + edx]; vb = b + trunc((d-b)*fy/64)
+3605c  mov ebx, eax
+3605e  pop eax
+3605f  xor ecx, ecx
+36061  xor edx, edx
+36063  mov dl, bl
+36065  mov cl, al
+36067  sub edx, ecx
+36069  mov ebp, dword ptr [0xc470c]
+3606f  add ebp, dword ptr [0xc482c]
+36075  add al, byte ptr [ebp + edx]; v = va + trunc((vb-va)*fx/64)
+36079  pop ecx
+3607a  mov dl, byte ptr [edi]; dl = destination pixel
+3607c  xor ebx, ebx
+3607e  mov bl, al
+36080  add dl, byte ptr [ebx + 0xc472c]; + att[v]   (att[k] = round(k*strength))
+36086  sbb bl, bl; carry -&gt; 0xff
+36088  or dl, bl; unsigned saturation
+3608a  mov byte ptr [edi], dl; store: in place, same buffer
+3608c  dec esi; next pixel is x-1 (left half)  ...
+3608d  dec edi
+3608e  dec ecx
+3608f  jns 0x35fec</pre>
+<h4>Seam smoothing (0x70d5)</h4>
+<pre class="asm">70d5  xor edx, edx
+70d7  xor ebx, ebx
+70d9  mov dl, byte ptr [eax]; p[x]
+70db  mov bl, byte ptr [eax - 2]; p[x-2]
+70de  add edx, ebx
+70e0  add eax, 0x140
+70e5  sar edx, 1; /2
+70e7  mov byte ptr [eax - 0x141], dl; -&gt; p[x-1]   (x = ftol(cx), the seam is smoothed after the 4 passes)
+70ed  cmp eax, ecx
+70ef  jne 0x70d5</pre>
+<h4>Port (docs/js/fx/feedback.js)</h4>
+<pre class="js">// four passes outward from the centre, then the seam smoothing
+pass(cyi, -1, cxi - 1, -1, 0); pass(cyi, -1, cxi, 1, W);
+pass(cyi + 1, 1, cxi - 1, -1, 0); pass(cyi + 1, 1, cxi, 1, W);
+// per pixel
+const va = a + (((c - a) * fy) / 64 | 0);      // table[fy][c-a]  = trunc(d*fy/64)
+const vb = b + (((d - b) * fy) / 64 | 0);
+const v  = va + (((vb - va) * fx) / 64 | 0);
+data[o] = Math.min(255, data[o] + att[v]);      // att[k] = round(k * strength)</pre>
+<dl class="facts">
+<dt>script</dt><dd><code>radialblur name {BUF} {BUF} {cx cy strength step}</code> - four space-free expressions, evaluated every frame with Frame = time since the first run, e.g. <code>{160+150*sin(Frame*0.01) 100+90*cos(Frame*0.01) 0.5+0.3*sin(Frame*0.005) -0.03}</code></dd>
+<dt>buffers</dt><dd>8 bit 320x200, input = output (in place); the strength expression is overridden by <code>controlfloat</code> while that value is positive</dd>
+<dt>timeline</dt><dd>orders 3-4, 7-11 (beat kicks), 15, 17-18, 19-22, 26-28</dd>
+<dt>original</dt><dd>effect table entry radialblur: init 0x1ba9a, run 0x1bb67; kernel 0x6fd0 (tables) / 0x35ee2 (pixels); interpolation table built at 0x70fc</dd>
+<dt>verified</dt><dd>5 consecutive frames of the original (golden run, t=18.3 s): 0 of 64000 bytes differ</dd>
+</dl>
+</section>

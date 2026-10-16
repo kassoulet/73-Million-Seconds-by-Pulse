@@ -1,0 +1,56 @@
+<section class="fx" id="fx-scene3d-animation">
+<h3>Scene time and key-frame animation</h3>
+<p>The <code>scene</code> effect (<code>addEvent 0 scene skeen {SCREEN16} {SCREEN16} {aziz1.lwe 32.0 200.0}</code>) has two numbers: a <strong>speed</strong> (scene frames per second) and a
+<strong>start frame</strong>. The render function <code>0x4fa0</code> converts the global centisecond clock into a scene frame: <code>t = (frame - start) * 0.01 * speed</code>; when
+<code>t</code> reaches <code>duration - 0.5</code> the start stamp is reset (the scene loops), and only <em>then</em> the offset is added. The aziz scene therefore plays frames 200...1500
+at 32 fps (40 s), vol.lwe at 4 fps, smoke.exp at 69 fps, box3.exp at 50 fps, box2.exp at 40 fps and the displaced obj11 at 3 fps.</p>
+<pre class="asm">
+4fc7  fld  dword ptr [0x10d992]      ; speed        (scene record +0x92)
+4fcd  fmul dword ptr [0xb6c0b]       ; * 0.01
+4fd3  fld  dword ptr [0xbcec8]       ; global frame (centiseconds)
+4fd9  fsub dword ptr [0x10d99a]      ; - frame at scene start
+4fdf  fmulp st(1)                    ; t
+4fe1  fld  dword ptr [0x10d948]      ; duration
+4fe7  fadd qword ptr [0xb6c0f]       ; - 0.5
+4fed  fxch st(1)
+4fef  fst  dword ptr [esp + 8]
+4ff3  fcompp
+4ff7  sahf
+4ff8  jb   0x500c                    ; t &lt; duration-0.5 : keep
+4ffa  fld  dword ptr [0xbcec8]       ; else restart: start = now, t = 0
+5002  fstp dword ptr [0x10d99a]
+500c  fld  dword ptr [esp + 8]
+5010  fadd dword ptr [0x10d996]      ; + offset (second parameter)
+</pre>
+<p>Positions and angles are Kochanek-Bartels (TCB) Hermite splines with LightWave's frame-spacing correction, evaluated in double precision by <code>0x26534</code> for
+UNLW and by <code>0x242e0</code> for UEXP tracks. The segment is found by walking the key list; a key whose <em>linear</em> flag is set interpolates linearly. The first and last keys use a
+one-sided tangent <code>0.5*(c1+c2)*(B-A)</code>. The port reproduces the camera of aziz1.lwe at 12 test frames with an error below 1e-4.</p>
+<pre class="asm">
+; 0x26534  Hermite blend of one channel: A*h1 + B*h2 + tangentOut*h3 + tangentIn*h4
+26849  fld  qword ptr [eax]              ; A
+2684a  fmul qword ptr [esp + 0x94]      ; * h1
+26851  fld  qword ptr [ebx]              ; B
+26853  fmul qword ptr [esp + 0xac]       ; * h2
+2685c  fld  qword ptr [esp + 0x7c]       ; outgoing tangent of A
+26860  fmul qword ptr [esp + 0xc4]       ; * h3
+26869  fld  qword ptr [esp + 0x6c]       ; incoming tangent of B
+2686d  fmul qword ptr [esp + 0xbc]       ; * h4
+</pre>
+<pre class="js">
+const h1 = 2*u3 - 3*u2 + 1, h2 = -2*u3 + 3*u2, h3 = u3 - 2*u2 + u, h4 = u3 - u2;
+const aP = (1-Ta)*(1+Ca)*(1+Ba), aN = (1-Ta)*(1-Ca)*(1-Ba);          // outgoing tangent coefficients of A
+const bP = (1-Tb)*(1-Cb)*(1+Bb), bN = (1-Tb)*(1+Cb)*(1-Bb);          // incoming tangent coefficients of B
+tsA = (aP*(A-prev) + aN*(B-A)) * N1/(B.frame-prev.frame);              // N1 = B.frame - A.frame
+tdB = (bP*(B-A) + bN*(next-B)) * N1/(next.frame-A.frame);
+out = h1*A + h2*B + h3*tsA + h4*tdB;
+</pre>
+<p>Orientation: heading / pitch / bank (degrees) become <code>R = Ry(h)&middot;Rx(p)&middot;Rz(b)</code>; the camera matrix of the original is this matrix with its
+second column negated (screen y points down), and a vertex is brought to camera space with <code>R<sup>T</sup>(p - eye)</code>. Screen position is
+<code>160 + x*359.37/z</code>, <code>100 + y*359.37/z</code> (zoom factor stored at camera <code>+0x20</code>). Over all 789 vertices of the aziz sphere the port agrees with the
+original to a median of 0.0002 pixels.</p>
+<dl class="facts">
+<dt>Script</dt><dd><code>addEvent 0 scene NAME {in} {out} {file speed offset}</code></dd>
+<dt>Parameters</dt><dd>speed = scene frames per second, offset = first scene frame</dd>
+<dt>Module</dt><dd><code>docs/js/fx/3d/anim.js</code>, <code>docs/js/fx/3d/math3d.js</code></dd>
+</dl>
+</section>

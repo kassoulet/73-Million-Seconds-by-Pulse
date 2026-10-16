@@ -1,0 +1,52 @@
+<section class="fx" id="fx-reebok">
+<h3>reebok - six additive rotozoom layers</h3>
+<p>The 256x256 picture <code>medusa</code> (8 bit, palette applied later by <code>palette medusa.pal</code>) is drawn six times on top of each other, each layer rotated and zoomed by a different amount and added to the screen with saturation. The rotation angle is shared (0.006 x elapsed*0.6), the zoom is <code>(sin(a)*0.5 + 2) * phase/32</code> and every layer has its own phase (0,42,84,126,168,210 - spaced by 256/6, all decreasing with time and wrapping at 256). A per-layer 256 byte brightness table <code>trunc(k * 0.7*sin(0.9q^2 + 2.24q))</code> (q = phase/256) turns the texel values into increments; it can be negative, the byte wraps, and the result flickers between layers - that is the shimmering look of the effect.</p>
+<p>It is a texture mapper working on a coarse grid: the screen is cut into 8x8 cells (41 x 26 corner points), the texture coordinates of the corners are computed in floating point (rotation matrix, 160/100 centre) and converted to 16.16 fixed point by the <em>magic number</em> trick (<code>fadd 1.5*2^36</code> then read the low dword of the stored double). Inside a cell, 0x59244 interpolates bilinearly with fixed point increments per pixel and per row. The 64 KB texture is copied to a 64K-aligned block so that the 8 bit registers <code>bl</code>/<code>bh</code> <em>are</em> the texture coordinates and wrap by themselves (no masking), while the fractions live in <code>esi</code>/<code>ebp</code> and their carry is propagated with <code>adc</code>. A quirk reproduced exactly: <code>ecx</code> and <code>edx</code> still carry the destination pixel and the integer steps in their low bytes, and these get added to the fractions as well.</p>
+<h4>Cell set-up (0x59244 inner part)</h4>
+<pre class="asm">592cc  mov ebx, dword ptr [0x117fdc]; ebx = texture base (64K aligned): bl = u, bh = v are the integer texture coordinates
+592d2  mov edx, dword ptr [0xc897c]; dv/dx (16.16)
+592d8  shl edx, 0x10; fraction of dv in the high half
+592db  mov ecx, dword ptr [0xc8978]
+592e1  shl ecx, 0x10; fraction of du
+592e4  mov bl, byte ptr [0xc8972]; bl = integer u of the cell corner
+592ea  mov esi, dword ptr [0xc8970]
+592f0  mov bh, byte ptr [0xc8976]; bh = integer v
+592f6  shl esi, 0x10; esi = fractional u (high 16 bits)
+592f9  mov ebp, dword ptr [0xc8974]
+592ff  shl ebp, 0x10; ebp = fractional v
+59302  xor eax, eax
+59304  mov al, byte ptr [ebx]</pre>
+<h4>Two pixels, first one shown (0x59304)</h4>
+<pre class="asm">59304  mov al, byte ptr [ebx]; al = texel (v&lt;&lt;8 | u)
+59306  mov dl, byte ptr [0xc897a]; dl = integer part of du per pixel
+5930c  add esi, ecx; u fraction += du fraction
+5930e  mov dh, byte ptr [0xc897e]; dh = integer part of dv per pixel
+59314  adc bl, dl; carry -&gt; u integer += du integer + carry   (adc)
+59316  mov al, byte ptr [eax + 0x117ddc]; brightness table of this layer (0x117ddc)
+5931c  mov cl, byte ptr [edi]; cl = destination pixel
+5931e  add ebp, edx; v fraction += dv fraction
+59320  adc bh, dh; v integer += ... + carry
+59322  add al, cl; add the texel brightness ...
+59324  sbb cl, cl; ... with unsigned saturation
+59326  nop
+59327  or cl, al
+59329  nop
+5932a  mov al, byte ptr [ebx]; next texel already for the next pixel
+5932c  nop
+5932d  mov byte ptr [edi], cl; store</pre>
+<h4>Port of the pixel step</h4>
+<pre class="js">// one pixel of an 8x8 cell; esi/ebp are the sub-texel fractions, bl/bh the texel coordinates
+let s = esi + ecxHi + cl; esi = s &gt;&gt;&gt; 0; const c1 = s &gt; 0xffffffff ? 1 : 0;   // add esi,ecx
+bl = (bl + dl + c1) &amp; 255;                                                       // adc bl,dl
+s = ebp + edx; ebp = s &gt;&gt;&gt; 0; const c2 = s &gt; 0xffffffff ? 1 : 0;                 // add ebp,edx
+bh = (bh + dh + c2) &amp; 255;                                                       // adc bh,dh
+cl = Math.min(255, tbl[texel] + D[p]);                                           // add / sbb / or
+texel = tex[(bh &lt;&lt; 8) | bl]; D[p] = cl;</pre>
+<dl class="facts">
+<dt>script</dt><dd><code>reebok juu {SCREEN8} {SCREEN8} {medusa.tga}</code>, preceded by <code>fillbuffer</code>, followed by <code>palette medusa.pal</code></dd>
+<dt>buffers</dt><dd>8 bit 320x200 in/out (additive), texture = 8 bit 256x256 from the archive</dd>
+<dt>timeline</dt><dd>order 29 - 32 (t = 211.6 - 235 s); the other agent's palette gives the colours</dd>
+<dt>original</dt><dd>init 0x199f3, run 0x19c9b (layer loop), grid corners 0x19ba4, cell filler 0x59244</dd>
+<dt>verified</dt><dd>3 consecutive frames of the original: 0 of 64000 bytes differ</dd>
+</dl>
+</section>

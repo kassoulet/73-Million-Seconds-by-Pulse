@@ -1,0 +1,19 @@
+<section class="fx" id="fx-scene3d-scenes">
+<h3>The 3D scenes of the demo</h3>
+<ul>
+<li><strong>aziz1.lwe / aziz2.lwe (0 s - 40 s, speed 32, start frame 200)</strong>: one object (<code>aziz_2.lwv</code>, 789 vertices, 1187 triangles: a sphere with bubbles) that never moves,
+a white light that flies around it on a 12-key spline and a camera on 10 keys that dives through the sphere and orbits it (frames 200-1500). aziz1 is rendered into SCREEN16 as shadow-volume beams, aziz2 draws the environment-mapped
+translucent surface (<code>lwotr 57</code>) into SCREEN; the 2D effects add the blur, palette and fades.</li>
+<li><strong>vol.lwe (48 s - 79 s, 4 fps)</strong>: <code>p_u.lwv</code>, 68 vertices / 34 triangles (<code>echo2.png</code>), 17 position keys, static camera, 3-key light; filtered and radially blurred by 2D effects.</li>
+<li><strong>smoke.exp (88 s - 106 s, 69 fps)</strong>: a GeoSphere (162 vertices) that rises along +y, a camera flying through a tunnel on six keys (position and target tracks) and five lights
+<code>f2.source ... f2.source04</code> that are not drawn as geometry: <code>setupflares</code> / <code>flareparticles</code> read their animated positions through the scene API.</li>
+<li><strong>box3.exp (106 s - 121 s, 50 fps) and box2.exp (234 s -, 40 fps)</strong>: two boxes, <code>Box01</code> (<code>echo.png</code> / pink, opacity 160) and <code>Box02</code> (<code>envb.jpg</code>); their geometry is replaced every frame by the marching cubes
+(<code>marchingcubes ... jabole box02 OurVolume</code>), and for <code>kubes</code> <code>renderoff</code> disables the polygon drawing while <code>volumesprites</code> draws sprites at the volume points through the scene camera.</li>
+<li><strong>obj1.lwe (188 s - 211 s, 3 fps)</strong>: <code>obj11.lwv</code> (3352 vertices, 6696 triangles) with a rotation of 720&deg; per 160 frames, a null on a 9-key path, a static light and a 4-key camera;
+<code>displace247 sdfdfg {skeen obj11.lwv 0.15 0.015 1.27}</code> makes the vertices pulse radially: <code>v' = c + (v - c)(1 + 0.15 sin(|v-c|*1.27 + 0.015*Frame))</code> around the centroid.</li>
+<li><strong>scene.lwe</strong> (<code>Particl3</code>, 11 keys, with a type-11 modifier chunk) is loaded by the script but never played.</li>
+</ul>
+<dl class="facts">
+<dt>Not used by the script</dt><dd><code>bomb</code>, <code>displacenorm</code>, <code>setwireframe</code>, <code>setparticles</code></dd>
+</dl>
+</section>

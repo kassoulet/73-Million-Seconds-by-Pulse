@@ -1,0 +1,35 @@
+<section class="fx" id="fx-lowpass">
+<h3>lowpass - one-pole filter with a one-pixel (four-pixel) bug</h3>
+<p>The blur is separable: a recursive filter <code>y += (x-y)*a/128</code> runs forward and then backward along every row, then the same down every column, which gives a symmetric exponential kernel in O(1) per pixel. <code>a = trunc(128*s)</code> where <code>s</code> is the script expression (0.7, 0.85...); at s &gt;= 1 the effect degrades to a copy. MMX processes the four channels of a 32 bit pixel in four 16 bit lanes (<code>psubw / pmullw / psraw 7 / paddw</code>); on 8 bit buffers the vertical pass handles four <em>columns</em> per MMX register, and the horizontal pass uses a 512 entry byte table <code>T[d] = trunc(d*s)</code> built at run time.</p>
+<p>The backward pass of the horizontal routines starts one dword (32 bit) or four bytes (8 bit) beyond the end of the scratch row, so the whole image is shifted left by 1 or 4 pixels and the right edge is filtered against zero (the scratch row is shared with the vertical pass, so on 8 bit buffers the right 4 columns even depend on the previous call). We reproduce this, since it is visible as a slow drift in feedback loops.</p>
+<pre class="asm">
+; 0xb4978  32 bit, one row.  esi=src row, edi=dst row, al=a.  mm6 = a in all four words, mm7 = 0
+b4987  mov ebp, 0xfffffb00      ; -1280 = -320 pixels * 4
+...
+b49a8  movd mm1, [esi+ebp]      ; y[0] = x[0]
+b49ac  movd mm0, [esi+ebp]      ; x[i]                    (loop starts here)
+b49b0  punpcklbw mm1, mm7       ; y (bytes) -> words
+b49b3  punpcklbw mm0, mm7
+b49b6  psubw mm0, mm1           ; x - y
+b49b9  pmullw mm0, mm6          ; * a
+b49bc  psraw mm0, 7             ; / 128 (arithmetic: floors)
+b49c0  paddw mm1, mm0           ; y += ...
+b49c3  add edi, 4               ; edi = scratch row 0xb3e38
+b49c9  add ebp, 4
+b49cf  packuswb mm1, mm7
+b49d2  movd [edi], mm1          ; scratch[i] = y
+b49d5  jne 0xb49ac
+...                             ; backward pass: same body, walking down from
+b49de  mov esi, 0xb3e38
+b49e3  add esi, 0x500           ; <-- should be 0x4fc: reads scratch[320], one pixel too far
+</pre>
+<pre class="js">
+// forward: y[0]=x[0]; y[i] = y[i-1] + (((x[i]-y[i-1]) * a) >> 7)
+// backward: z = y[319]; for j = 319..0: z += ((TMP[j+1] - z) * a) >> 7; out[j] = z   (TMP[320] == 0)
+</pre>
+<dl class="facts">
+<dt>script</dt><dd><code>lowpass name {in} {out} {s}</code> on SCREEN8 (0.7) and 32 bit buffers (0.3..0.85), s can be an expression of Frame</dd>
+<dt>verified</dt><dd>32 bit: byte exact (3 parameter sets). 8 bit: byte exact when the scratch row state is the same; otherwise only the 4 right-most columns differ</dd>
+<dt>16 bit</dt><dd>not supported by the original either (error message)</dd>
+</dl>
+</section>

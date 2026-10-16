@@ -1,0 +1,18 @@
+DOS/4GW error (2001): exception 0Eh (page fault) at 237:00700465
+TSF32: prev_tsf32 528C
+SS       23F DS       23F ES       23F FS         0 GS        87
+EAX        0 EBX 8318C6D8 ECX       9E EDX 8318C668
+ESI 82BD5A40 EDI 82BD5A40 EBP        0 ESP 82C6FF9C
+CS:IP  237:00700465 ID 0E COD        4 FLG    10202
+CS=  237, USE32, page granular, limit FFFFFFFF, base        0, acc CFFB
+SS=  23F, USE32, page granular, limit FFFFFFFF, base        0, acc CFF3
+DS=  23F, USE32, page granular, limit FFFFFFFF, base        0, acc CFF3
+ES=  23F, USE32, page granular, limit FFFFFFFF, base        0, acc CFF3
+FS=    0, USE16, byte granular, limit        0, base        0, acc  0
+GS=   87, USE16, byte granular, limit     FFFF, base    1BA80, acc F3
+CR0: unavailable
+
+
+
+SORRY, NO BONUS :D
+

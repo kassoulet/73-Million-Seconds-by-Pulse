@@ -1,0 +1,61 @@
+<section class="fx" id="fx-scene3d-renderer">
+<h3>The software 3D renderer: z buckets, magic-number fixed point and shadow-volume beams</h3>
+<p>One frame of a scene (<code>0x4fa0</code>) evaluates the key tracks, then <code>0x2b21f</code> transforms every vertex into camera space, projects it
+(<code>0x587f1</code>: <code>x = X*zoom/Z + w/2</code>), sorts the polygons into <strong>1024 depth buckets</strong> (a linked list per bucket, drawn from the far bucket to the near one &mdash; no z-buffer, a
+painter's algorithm; the original even prints "RSorting range exceeded" when a bucket index leaves 0..1023) and hands each polygon to one of about 25 handwritten scanline fillers
+(<code>0x612fc ... 0x74f88</code>) chosen from the target depth (8, 16 or 32 bit), the surface shading mode and its transparency. Only two fillers are used by the demo:
+the textured, alpha blended filler <code>0x6f75c</code> for the 32-bit scenes (affine u,v taken from an environment map: the camera-space vertex normal selects the texel,
+<code>u = 128 + 127.5*n.x</code>, <code>v = 128 + 127.5*n.y</code> on a 256x256 texture such as <code>echo.png</code>), and the <em>beam</em> filler <code>0x612fc</code> for the 16-bit target of <code>aziz1.lwe</code>.</p>
+<p>All fillers convert floats to 16.16 fixed point with the classic <em>magic number</em> trick: adding 1.5*2<sup>36</sup> (<code>[0xc8c30]</code> = 0x51c00000) to a float leaves the 16.16 fixed-point value in
+the low dword of the double that is then stored. This only works with the x87 precision control set to 53/64 bits. <strong>This is why the first golden frames of the 3D scenes were black</strong>:
+the emulation snapshot restored the CPU registers but not the FPU control word, so Unicorn ran with FPCW=0 (24-bit precision, all exceptions unmasked), the sum was rounded to single precision,
+the fixed-point value became 0 and every triangle was empty. Setting <code>FPCW = 0x37f</code> after loading the snapshot (<code>re/emucore.py</code>) fixed it.</p>
+<h4>Beams = shadow volumes accumulated as scanline deltas</h4>
+<p>For a scene loaded with the flag <code>i</code> and after <code>beamson</code>, the polygons of the object are not drawn. Instead, for every polygon the three side quads of the prism obtained by
+pushing each vertex away from the first light (<code>v + (v - L) * 9999</code>) are rasterised into a 16-bit buffer with the filler below, which does not store pixels at all: it adds <code>k</code> to the first pixel
+of every scanline span and subtracts it after the last one. The row prefix sum (the <code>interpolator</code> effect, SCREEN16 -&gt; SCREEN8) turns this into the number of shadow-volume faces
+covering each pixel, i.e. the radial light shafts of the first scene. Cost per span is two memory operations whatever its length.</p>
+<pre class="asm">
+; 0x612fc inner loop, span of one scanline (ebx = row base, ecx = x1, edx = x0, ax = k = 2)
+616c4  mov  ebx, dword ptr [0xc8c18]       ; row start of this scanline (from the row table at 0x119100)
+616ca  sub  ecx, edx                        ; span length
+616cc  jbe  0x616e1
+616ce  cmp  ecx, 0x3e8                      ; spans longer than 1000 are dropped
+616d4  jg   0x616e1
+616d6  lea  edi, [ebx + ecx*2]
+616d9  add  word ptr [ebx + edx*2], ax      ; +k at the left edge
+616dd  sub  word ptr [edi + edx*2], ax      ; -k right after the last pixel
+616e1  fadd dword ptr [0xc8c3c]             ; x_left  += dx_left   (both edges are x87 doubles with the magic number)
+616e9  fadd dword ptr [0xc8c24]             ; x_right += dx_right
+61703  inc  ecx                             ; next scanline
+61704  mov  edx, dword ptr [0x11a108]       ; pitch
+6170a  add  ebx, edx
+</pre>
+<pre class="js">
+// raster.js: triDelta16 - same edge rounding as the original ((x*65536 + 0xfff0) >> 16 == ceil(x - 1/16))
+function spanDelta(y, xl, ul, vl, xr) {
+  let x0 = q(xl), x1 = q(xr); if (x1 &lt;= x0) return; /* clip to the row */
+  const p = y * _W; _dst[p + x0] += _k; if (x1 &lt; _W) _dst[p + x1] -= _k;      // Uint16Array wraps like the original
+}
+</pre>
+<p>Measured on the original buffer (frame 520 of aziz1): every row sums to exactly zero, the deltas are multiples of 2 (the weight of a prism quad; weight 7 is used for the polygon itself) and the
+object's shadow shows up as the dark core of the image. The port reproduces the overall structure (dark core, radial wedges) but not pixel for pixel: the original rejects quads with a vertex behind the camera
+through an outcode flag and re-uses stale screen coordinates, which is not reproducible (mean integrated value 32 in the original, 55 in the port; mean absolute difference 26).</p>
+<pre class="asm">
+; 0x2b915  prism: vertex + (vertex - light) * 9999, done for all three vertices of the polygon (camera space +0x18,+0x1c,+0x28)
+2b91b  fld  dword ptr [eax + 0x18]
+2b91e  fsub dword ptr [ebp - 0xe8]          ; - light.x
+2b924  fmul qword ptr [0xb9001]             ; * 9999.0
+2b92a  mov  eax, dword ptr [ebp - 0xf4]
+2b930  fld  dword ptr [eax + 0x18]
+2b933  faddp st(1)
+2b935  fstp dword ptr [ebp - 0x140]
+</pre>
+<p>The 32-bit scenes (aziz2.lwe, vol.lwe, obj1.lwe, the boxes) are drawn with the textured filler. Their transparency is the surface byte <code>+0xa7</code> (<code>lwotr</code>: 255 = opaque, 57 = 22 %);
+aziz2 shows the same translucent, environment-mapped bubbles as the original (compared by eye with the golden frame). The 8-bit scene (smoke.exp into SCREEN8) is drawn with the luminance of the texture as palette index (approximation).</p>
+<dl class="facts">
+<dt>Original</dt><dd>render <code>0x4fa0</code>, sort + draw <code>0x2b21f</code>, setup <code>0x27b7c</code>, fillers <code>0x612fc</code> (beams), <code>0x6f75c</code> (textured alpha)</dd>
+<dt>Port</dt><dd><code>docs/js/fx/scene3d.js</code> (pipeline), <code>docs/js/fx/3d/raster.js</code> (fillers)</dd>
+<dt>Script</dt><dd><code>loadscene file buffer [i]</code>, <code>lwotr</code>, <code>lwoshading</code>, <code>beamson/beamsoff</code>, <code>renderoff/renderon</code>, <code>setwireframe</code> (unused)</dd>
+</dl>
+</section>

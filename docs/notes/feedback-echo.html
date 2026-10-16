@@ -1,0 +1,65 @@
+<section class="fx" id="fx-echo">
+<h3>echo - zoomed, warped picture echo</h3>
+<p>A 256x256 8-bit picture (<code>ways.tga</code>) is stretched over the screen through a fixed twist table and scrolled in a small Lissajous-like path; each frame the previous result is shrunk to 80% around the screen centre, blurred with a 2x2 box filter, multiplied by 0.70 and the new picture is added on top (saturating). Because the previous frame is fed back through the zoom, every earlier copy of the picture keeps shrinking and fading: an infinite tunnel of echoes.</p>
+<p>Two buffers of 64000 bytes are ping-ponged (the output of one frame is the input of the next, and a copy goes to the screen buffer). The twist table is built once: <code>(x*256/320, y*256/200)</code> displaced by <code>15*sin(0.0005*(x-160)*(y-100))</code> in both coordinates and packed as a 16 bit linear index <code>(y&lt;&lt;8)+x</code>, so the picture lookup is one table read and a 16 bit wrap. The picture offset is <code>6144 + 256*(ceil(32cos T)+ceil(4sin T)) + ceil(32sin T) + ceil(8cos T)</code>, T = 0.04 x absolute frame counter (centiseconds).</p>
+<p>The inner loop is <strong>self-modifying code</strong>: before every frame the handler stores the buffer addresses, the table address and the scroll offset into the operand fields of the instructions of the loop (the <code>[reg+1]</code> operands in the listing are placeholders), and the two small lookup tables (the zoom tables for x and y and the attenuation table) are copied into the code segment itself. A classic trick to free registers - the loop needs no base pointers. The tables have one slot too few: x=0 and y=0 read a never-initialised slot (zero), the first row and column therefore sample from (0,0).</p>
+<h4>Patching the loop (0xb363f)</h4>
+<pre class="asm">b3640  mov dword ptr [0xb3633], esi; self-modifying code: the arguments are written into the operands of the loop below
+b3646  mov dword ptr [0xb36e1], edi; -&gt; displacement of the store at b36df
+b364c  mov dword ptr [0xb36d9], ebx; -&gt; displacement of the picture read at b36d7
+b3652  mov dword ptr [0xb36e7], eax; -&gt; displacement of the second store (b36e5)
+b3657  mov dword ptr [0xb36c1], edx; -&gt; operand of the warp table read (b36be)
+b365d  mov dword ptr [0xb3637], ecx; time offset into the picture</pre>
+<h4>Per pixel loop (0xb3693)</h4>
+<pre class="asm">b3693  mov esi, dword ptr [ebp*4 + 0xb2cb3]; x table (copied INTO the code at 0xb2cb3 by 0xb34e3)
+b369a  xor ebx, ebx
+b369c  add esi, ecx; + row base (y table)
+b369e  mov al, byte ptr [esi]; p = source pixel (zoomed position) in the previous echo buffer
+b36a0  mov bl, byte ptr [esi + 0x141]; +p[321]
+b36a6  add eax, ebx
+b36a8  mov bl, byte ptr [esi + 0x140]; +p[320]
+b36ae  add eax, ebx
+b36b0  mov bl, byte ptr [esi + 1]; +p[1]
+b36b3  add eax, ebx
+b36b5  shr eax, 2; box average of 2x2 pixels
+b36b8  mov al, byte ptr [eax + 0xb28b3]; attenuation table (also copied into the code, 0xb28b3)
+b36be  mov ebx, dword ptr [edi + edi + 1]; ebx = warp[i]  (16 bit index into the 256x256 picture)
+b36c5  and ebx, 0xffff
+b36cb  add ebx, dword ptr [0xb3637]; + time offset
+b36d1  and ebx, 0xffff; wrap inside the picture
+b36d7  add al, byte ptr [ebx + 1]; add the picture pixel ...
+b36dd  jb 0xb36f5; ... saturating
+b36df  mov byte ptr [edi + 1], al; write to the output buffer
+b36e5  mov byte ptr [edi + 1], al; and to the echo buffer for the next frame
+b36eb  inc edi
+b36ec  dec ebp
+b36ed  jne 0xb3693</pre>
+<h4>Twist table (init, 0xe7d1)</h4>
+<pre class="asm">e7d1  mov dword ptr [ebp - 0xb24], edx; (x-160)*(y-100)
+e7d7  fild dword ptr [ebp - 0xb24]
+e7dd  fmul qword ptr [0xb6ee8]; * 0.0005
+e7e3  sub esp, 8
+e7e6  fstp qword ptr [esp]
+e7e9  call 0x4f529; sin
+e7ee  fmul qword ptr [0xb6ef0]; * 15.0
+e7f4  fld dword ptr [ebp - 0xb20]
+e7fa  fstp qword ptr [ebp - 0xb2c]
+e800  fadd qword ptr [ebp - 0xb2c]
+e806  fstp qword ptr [ebp - 0xb2c]
+e80c  fld qword ptr [ebp - 0xb2c]
+e812  fstp dword ptr [ebp - 0xb20]; fx += 15*sin(0.0005*(x-160)*(y-100))  (float32)</pre>
+<h4>Port</h4>
+<pre class="js">const s15 = Math.sin((x - 160) * (y - 100) * 0.0005) * 15.0;
+warp[y*320+x] = ftol(ftol(f32(y*256/200) + s15) * 256 + f32(x*256/320) + s15) &amp; 0xffff;
+// per frame
+const T = f32(ctx.frame) * 0.04;
+const ofs = 6144 + 256*(Math.ceil(32*Math.cos(T)) + Math.ceil(4*Math.sin(T))) + Math.ceil(32*Math.sin(T)) + Math.ceil(8*Math.cos(T));
+dst[i] = Math.min(255, att[(src[p] + src[p+1] + src[p+320] + src[p+321]) &gt;&gt; 2] + atom[(warp[i] + ofs) &amp; 0xffff]);</pre>
+<dl class="facts">
+<dt>script</dt><dd><code>echo name {ATOM} {SCREEN8} {zoom attenuation}</code> e.g. <code>{0.80 0.70}</code> (sscanf %f %f)</dd>
+<dt>buffers</dt><dd>input[0] = 256x256 8 bit picture (ev+0x30), output = 320x200 8 bit (ev+0x40); a second 32 bit code path exists (0xb3506) but is not used by the script</dd>
+<dt>timeline</dt><dd>order 17 12 - 18 60 (t = 120.8 - 134.3 s), followed by radialblur, palette green2.pal</dd>
+<dt>original</dt><dd>init 0xe67d, run 0xe9f9, free 0xec50; loops 0xb363f (8 bit) / 0xb3506 (32 bit), table copy 0xb34e3</dd>
+<dt>verified</dt><dd>3 frames of the original, both ping-pong parities: warp table, scroll offset and all 64000 output bytes identical</dd>
+</dl>
+</section>

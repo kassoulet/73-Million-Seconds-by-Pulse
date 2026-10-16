@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>73 million seconds — Pulse, 1998, in JavaScript</title>
+<meta name="description" content="A JavaScript port of the 1998 DOS demo '73 million seconds' by Pulse, with notes on the demoscene, the engine, the 3D scenes and the inner loops of the original x86 code.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <p class="kicker">PULSE · 1998 · DOS/4GW · 320×200 · FastTracker 2</p>
+    <h1>73 million seconds</h1>
+    <p class="lead">A 1998 PC demo, reverse-engineered from its executable and re-implemented in JavaScript.
+      Watch it below, then read how the retro machine, the engine and its x86 inner loops worked.</p>
+  </div>
+</header>
+
+<main>
+<section id="player" class="wrap">
+  <div id="stage" class="stage">
+    <canvas id="screen" width="320" height="200" aria-label="Demo output (320 by 200 pixels)"></canvas>
+    <div class="scanlines" aria-hidden="true"></div>
+    <div id="loading" class="overlay"><p>loading assets…</p><div class="progress"><div id="bar"></div></div></div>
+    <button id="start" class="overlay bigplay" hidden aria-label="Start the demo">▶ <span>start (sound on)</span></button>
+    <div id="busy" class="overlay small" hidden>seeking…</div>
+    <div class="pausetag" aria-hidden="true">❚❚</div>
+    <pre id="hud" class="hud" hidden></pre>
+    <div class="controls">
+      <div class="seekrow"><div id="marks" class="marks"></div><input id="seek" type="range" min="0" max="2600" value="0" aria-label="Position"></div>
+      <div class="btnrow">
+        <button id="prev" title="Previous scene (←)" aria-label="Previous scene">⏮</button>
+        <button id="play" title="Play / pause (space)" aria-label="Play or pause">▶</button>
+        <button id="next" title="Next scene (→)" aria-label="Next scene">⏭</button>
+        <span id="time" class="time">0:00 / 0:00</span>
+        <span id="chap" class="chap"></span>
+        <span class="sp"></span>
+        <label class="chk" title="Show active events"><input id="hudb" type="checkbox"> events</label>
+        <label class="chk" title="CRT scanlines"><input id="scan" type="checkbox"> CRT</label>
+        <input id="vol" type="range" min="0" max="1" step="0.05" value="1" aria-label="Volume" title="Volume">
+        <button id="fs" title="Fullscreen (F)" aria-label="Fullscreen">⛶</button>
+      </div>
+    </div>
+  </div>
+  <p class="status">status: <span id="status">starting</span> · keys: <kbd>space</kbd> play/pause · <kbd>←</kbd> <kbd>→</kbd> previous/next scene · <kbd>J</kbd> <kbd>L</kbd> ∓5 s · <kbd>F</kbd> fullscreen</p>
+</section>
+
+<section class="wrap">
+  <h2>What you are watching</h2>
+  <p><em>73 million seconds</em> is a 4½-minute PC demo released by the group <strong>Pulse</strong> in 1998. A demo is not a game or a video: it is a
+  real-time program whose only purpose is to impress with audiovisual effects, written to run on the hardware of the day (here a Pentium-class PC
+  with MMX under DOS) and synchronised to a tracker module. The original ships as <code>73MS.EXE</code> (348&nbsp;KB, packed with UPX) and a 3.3&nbsp;MB
+  data archive <code>73MIL.SEC</code>; the credits in the NFO read <em>unreal, camel, echo, visualize, voomie, keyg</em> — “lead my singer. good-looking handsome routines.”</p>
+  <p>This page runs <strong>a JavaScript re-implementation</strong> of that engine: the original script and assets are read as they are, every effect was
+  re-written from the disassembly of the original code, and the music is the original XM module played by libopenmpt. Nothing is pre-rendered
+  except what the original also pre-rendered (the “nebar” fly-through is a video stored in the archive).</p>
+</section>
+
+<section class="wrap" id="scenes">
+  <h2>The demo, scene by scene</h2>
+  <p>The whole show is described by a 10&nbsp;KB text script. Its time axis is not seconds but <em>pattern order / row</em> of the tracker module
+  (<code>order&nbsp;row&nbsp;command</code>), so the visuals stay glued to the music whatever the machine speed. Click a scene to jump to it.</p>
+  <ol class="chapters" id="chapter-list">
+    <li><a href="#player" data-chapter="0"><b>Glass sculpture</b><span>order 0 · <em>scene</em>, <em>lowpass</em>, <em>palette</em>, <em>fade</em></span> A 3D sculpture rendered into a 16-bit buffer, converted to 8-bit, smoothed and colourised through a palette, over a second scene in 32-bit colour.</a></li>
+    <li><a href="#player" data-chapter="1"><b>Radial blur &amp; logo</b><span>order 3 · <em>radialblur</em>, <em>fade</em>, <em>blend</em></span> The logo pictures fade in while a zoom blur streaks the frame.</a></li>
+    <li><a href="#player" data-chapter="2"><b>Nebar fly-through</b><span>order 5 · <em>playrgbani</em></span> A pre-rendered 40-frame 24-bit animation (6.9&nbsp;MB unpacked, 1.5&nbsp;MB in the archive) looped through the engine's animation player.</a></li>
+    <li><a href="#player" data-chapter="3"><b>P_U particles</b><span>order 7 · <em>scene</em>, <em>lowpass</em>, <em>radialblur</em>, <em>controlfloat</em></span> Particle logo scene with feedback blur; <code>controlfloat</code> events from the script drive the beat.</a></li>
+    <li><a href="#player" data-chapter="4"><b>Parasite</b><span>order 11 · <em>parasite</em></span> An image-driven distortion effect fed with a PNG.</a></li>
+    <li><a href="#player" data-chapter="5"><b>Smoke &amp; flares</b><span>order 12 · <em>scene</em>, <em>setupflares</em>, <em>flareparticles</em></span> Particle smoke lit by five animated light sources, rendered with additive flare sprites into an 8-bit buffer.</a></li>
+    <li><a href="#player" data-chapter="6"><b>Marching cubes</b><span>order 15 · <em>volume3D</em>, <em>metaballs</em>, <em>morphvolume</em>, <em>marchingcubes</em></span> A voxel volume built from scanned shapes, metaballs and a plasma, polygonised every frame into a box object.</a></li>
+    <li><a href="#player" data-chapter="7"><b>Echo atoms</b><span>order 17 · <em>echo</em>, <em>radialblur</em>, <em>palette</em></span> A feedback “echo” effect fed by a 256×256 pattern, green palette, flash to white.</a></li>
+    <li><a href="#player" data-chapter="8"><b>Echo tunnels</b><span>order 19 · <em>echo6</em>, <em>lowpass</em>, <em>radialblur</em></span> Another echo variant driven by an expression of time.</a></li>
+    <li><a href="#player" data-chapter="9"><b>Echo, matrix &amp; blobs</b><span>order 23 · <em>echo4</em>, <em>matrix</em>, <em>xfade</em></span> A convolution (“matrix”) pass on an echo, two palettes cross-faded.</a></li>
+    <li><a href="#player" data-chapter="10"><b>Displaced sculpture</b><span>order 26 · <em>displace247</em>, <em>colordistort</em></span> A 3D object whose vertices are displaced, then colour-remapped through a distortion table.</a></li>
+    <li><a href="#player" data-chapter="11"><b>Medusa</b><span>order 29 · <em>reebok</em></span> A 256×256 indexed picture warped in 8-bit colour.</a></li>
+    <li><a href="#player" data-chapter="12"><b>Credits</b><span>order 30</span> The credits picture fades in.</a></li>
+    <li><a href="#player" data-chapter="13"><b>Cubes &amp; sprites</b><span>order 32 · <em>volumesprites</em></span> Metaball volume rendered as sprites through the camera of a 3D scene, until the end (order 35, row 33).</a></li>
+  </ol>
+</section>
+
+<section class="wrap" id="retro">
+  <h2>The retro context</h2>
+  <h3>1998: DOS is not dead yet</h3>
+  <p>Windows 98 had just shipped, but the demoscene still wrote for MS-DOS: the program owns the machine, switches the graphics card to a mode of its choice
+  and talks to the hardware directly. Executables like this one were “32-bit protected-mode DOS programs”: a <em>DOS extender</em> (here <strong>DOS/4GW</strong>, bundled with the
+  Watcom C/C++32 compiler) switches the CPU to protected mode and gives the program a flat 4&nbsp;GB address space, while DOS itself is still there for files and the keyboard.
+  The executable here is an LE image compressed with <strong>UPX</strong>; its start-up code decompresses 900&nbsp;KB of code and data into memory, un-filters the
+  <code>call</code> instructions (UPX rewrites relative calls to absolute ones to help the compressor) and applies the relocations.</p>
+  <h3>320×200, 32 bits per pixel — in 1998</h3>
+  <p>Instead of the classic 256-colour VGA mode, this engine renders into <em>buffers</em> of 8, 16 or 32 bits per pixel (all 320×200 except one 256×256 texture) and
+  copies the result to the screen through <strong>VESA</strong> (the demo asks you to run <code>UNIVBE</code> if your card has no BIOS support). 8-bit buffers are used for effects
+  that only need an intensity channel — feedback, blur, echo — and are converted to true colour by a palette at the end; 32-bit buffers carry the pictures and 3D scenes.
+  Many inner loops use <strong>MMX</strong>, the integer SIMD extension of the Pentium MMX (1997): a switch <code>-nommx</code> exists, and <code>cpuid</code> is used to detect it.</p>
+  <h3>Music: a tracker module</h3>
+  <p>The soundtrack is <code>tour2.xm</code>, a <em>FastTracker 2</em> “Extended Module”: 16 channels, 34 patterns of 64 rows, 24 instruments, 945&nbsp;KB. The sound library is
+  <strong>IMS</strong> (Indoor Music System by Niklas Beisert, of the Cubic Team), which supported all the sound cards of the time — Gravis UltraSound, SoundBlaster, ESS, Windows Sound System… —
+  and gave the demo the current <em>order and row</em> of the song, the clock of the whole production.</p>
+  <h3>Keeping it small, and fast</h3>
+  <p>The archive <code>73MIL.SEC</code> holds 45 files compressed with five home-made schemes (two LZ variants, a bzip-style block-sorting coder for the animation,
+  plus stored JPEG/PNG/TGA). The engine itself is Watcom C compiled code — you can see its stack-check prologue on every function —
+  assembled from a library of reusable effects: 57 effect types are registered in one table, only about 25 are used by this demo.</p>
+</section>
+
+<section class="wrap" id="engine">
+  <h2>How the engine works</h2>
+  <p>The architecture is data-driven: <code>script.unr</code> creates named <strong>buffers</strong> and then adds <strong>events</strong>. An event is an instance of an effect type with a
+  list of input buffers, a list of output buffers and a parameter string. Every frame the engine runs all events of layer 0, then layer 1, 2 and 3, in creation order. Effects can therefore be
+  chained like a patch-bay: a 3D scene renders into <code>SCREEN16</code>, an <em>interpolator</em> converts it to <code>SCREEN8</code>, a <em>lowpass</em> smooths it, a <em>palette</em> turns it into <code>SCREEN</code> (32-bit), a <em>fade</em> darkens it.</p>
+<pre class="plain">0 0 createBuffer SCREEN 320 200 32
+createBuffer SCREEN16 320 200 16
+createBuffer SCREEN8 320 200 8
+loadscene aziz1.lwe SCREEN16 i
+...
+addEvent 0 scene skeen {SCREEN16} {SCREEN16} {aziz1.lwe 32.0 200.0}
+addEvent 0 interpolator i {SCREEN16} {SCREEN8} {}
+addEvent 1 lowpass lo {SCREEN8} {SCREEN8} {0.7}
+addEvent 1 palette pal {SCREEN8} {SCREEN} {medusa.pal}
+addEvent 1 fade fuckyou {SCREEN} {SCREEN} {0 0 0 1.0-clip10(Frame*0.003)}</pre>
+  <p>Parameters can be <em>expressions</em> compiled by a small stack machine (<code>sin, cos, fabs, sqrt, floor, clip, clip10, clip11…</code>) and evaluated each frame with the variable
+  <code>Frame</code>: the time since the event was added, in <strong>hundredths of a second</strong> (the engine multiplies the player clock by 100). That is how a fade is written:
+  <code>1.0-clip10(Frame*0.003)</code> goes from 1 to 0 in 3.3 seconds. Script times are <code>order row</code> pairs of the module, so the scene changes land exactly on the beat.</p>
+</section>
+
+<section class="wrap" id="re">
+  <h2>Reverse-engineering the executable</h2>
+  <ol class="steps">
+    <li><strong>Unpacking.</strong> The EXE is a DOS/4GW “LE” executable with two objects; the second one holds a UPX 0.30 stub with a custom entry (the usual
+    signature checks are neutralised), so <code>upx -d</code> refuses it. The stub was run in a CPU emulator (Unicorn) up to the point where it jumps to the program, the decompressed
+    image was captured, the 8257 filtered <code>call</code> opcodes were restored and the relocation stream (21&nbsp;802 entries in four blocks: code, two small data objects and the main data object) was applied. The result is a flat 860&nbsp;KB image
+    whose strings, effect table and function boundaries can be read directly.</li>
+    <li><strong>The archive.</strong> <code>73MIL.SEC</code> is a plain sequence of records (sizes, name, compression-type byte, payload). Its decompressors were located from the loader at <code>0x6b25</code>, and run <em>as they are</em> inside the emulator to extract all 45 files, including the 6.9&nbsp;MB animation that needs the engine's own block-sort decoder.</li>
+    <li><strong>The engine.</strong> Effects are registered in a 20-byte-record table at <code>0xbd2d0</code>; each record points to a descriptor of three functions (<em>init</em> — parse parameters and compile expressions, <em>run</em> — per-frame work, <em>free</em>). Events, buffers and scenes are simple structs, documented in <code>re/NOTES.md</code> of the repository.</li>
+    <li><strong>Ground truth.</strong> A harness boots the original code inside the emulator (DOS, DPMI and VESA calls are stubbed), replaces the music clock by a virtual one and captures
+    the screen buffer of each frame: the original engine renders headlessly and yields reference frames to compare the JavaScript effects against. Single functions can also be called directly with synthetic buffers, which is how the per-pixel loops were checked byte for byte.</li>
+  </ol>
+</section>
+
+<section class="wrap" id="loops">
+  <h2>Interesting inner loops</h2>
+  <p>The effects below were ported from the disassembly. Each note shows the real x86 code of the hot loop (addresses refer to the unpacked image, base 0) next to the JavaScript equivalent.</p>
+  <div id="notes"><p class="dim">loading notes…</p></div>
+</section>
+
+<section class="wrap" id="port">
+  <h2>About this port</h2>
+  <ul>
+    <li><strong>Engine</strong>: <code>js/engine.js</code> parses the script, schedules commands on the module's (order,row) timeline and runs the events; <code>js/core.js</code> holds the buffer type and the expression compiler; effects live in <code>js/fx/</code>.</li>
+    <li><strong>Music</strong>: the original <code>tour2.xm</code> through <a href="https://github.com/DrSnuggles/chiptune">chiptune3</a> / libopenmpt (BSD licences). The visual clock follows the audio clock; seeking replays the script and re-warms the feedback buffers for 1.5 s.</li>
+    <li><strong>Differences</strong>: the original ran at the speed of the PC and used 16-bit/8-bit hardware modes; here frames are produced at the display refresh rate. Effects that depend on the previous frame (echo, blur) therefore look slightly different at other frame rates. Anything the port approximates is listed in the notes of the effect.</li>
+    <li><strong>Source and tools</strong>: the repository contains the reverse-engineering notes, the emulator harness and the tools used to extract the data (<code>re/</code>, <code>tools/</code>).</li>
+    <li><strong>Credits</strong>: demo, music and assets © Pulse (1998); this page is an educational, non-commercial study. Greetings to everyone who made the DOS scene.</li>
+  </ul>
+</section>
+</main>
+<footer class="wrap foot"><p>“me gusta beber cerveza y las chicas tambien” — antony/pulse</p></footer>
+<script type="module" src="js/main.js"></script>
+<script type="module" src="js/notes.js"></script>
+</body>
+</html>

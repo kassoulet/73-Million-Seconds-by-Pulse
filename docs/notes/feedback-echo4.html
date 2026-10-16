@@ -1,0 +1,118 @@
+<section class="fx" id="fx-echo4">
+<h3>echo4 - additive 3D cage with glow trails (and the 3D triangle pipeline)</h3>
+<p>A tiny software 3D engine hides behind the "echo" names. <code>echo4</code> builds a cage of 3 x 6 square planes (at +-100, +-60, +-20 along every axis, 72 vertices, 36 triangles), rotates it with three angles derived from the (differentiated) expression, pushes it 500 units away and draws every triangle <em>additively</em> into the 8 bit buffer with a perspective-correct texture mapper; the texture is 2500 random soft blobs generated at start (the original used <code>rand()</code>, the port reproduces the generator from the seed measured in the original). Because adding commutes, the triangles need no depth sort (the original still files them into 4096 depth buckets and drops anything farther than index 4095). The finished picture is then smeared: every pixel gets <code>0.65 x</code> the (already smeared) pixel to its left and then above it, which stretches the bright additive line crossings into long glow trails.</p>
+<p>The expression parameter (<code>Frame*0.8</code>) is not a value but a clock: only its change since the previous frame (<code>dt</code>) is used, it advances the angle (+0.00225 per unit) and scrolls the texture. Each frame builds a 3x4 float matrix by calling small routines (identity, three rotations, scale 3.5/4.55/3.5, translation 500) and multiplies every vertex (0x8ba34). Triangles go through a 4 stage clipper (the four side planes |x|&lt;z, |y|&lt;z, implemented by testing the sign of x-z, negating/swapping the coordinates between stages and clipping with linear interpolation into scratch vertices; the code is shared with the rest of the demo's polygon engine) and the rasteriser 0x8985d: vertices are projected to 16.16 fixed point (note the stored screen axes: x uses scale 160 px, y 100 px), u/z, v/z and 1/z are interpolated with gradients solved from the triangle's edge vectors, edges are stepped Bresenham style (the carry of the low 16 bits selects between two precomputed attribute steps), and inside a scanline 1/z is inverted only every 8 pixels - the texture coordinates of the 8 pixels are linear in between.</p>
+<p>The pixel loop packs both texture coordinates in <em>one</em> 32-bit register (U as 8.8 in the high half, V in the low half): one <code>add ebx,eax</code> moves both, the two bytes that are the integer parts are extracted with <code>shr edx,24</code> / <code>mov dh,bh</code>. It is unrolled eight times and entered in the middle (jump table at 0xd4570) for the remainder pixels of a span. All of this is replicated bit-exactly in the port (the clipper, the sub-pixel set-up and the packed arithmetic, including its carry quirk).</p>
+<h4>Vertex transform (0x8ba34)</h4>
+<pre class="asm">8ba3d  fld dword ptr [eax + 4]; out.x = m1*y + m0*x + m2*z + m3
+8ba40  fmul dword ptr [edx + 4]
+8ba43  fld dword ptr [eax]
+8ba45  fmul dword ptr [edx]
+8ba47  faddp st(1)
+8ba49  fld dword ptr [eax + 8]
+8ba4c  fmul dword ptr [edx + 8]
+8ba4f  faddp st(1)
+8ba51  fadd dword ptr [eax + 0xc]
+8ba54  fstp dword ptr [ebx]
+8ba56  fld dword ptr [eax + 0x14]; out.y = m5*y + m4*x + m6*z + m7
+8ba59  fmul dword ptr [edx + 4]
+8ba5c  fld dword ptr [eax + 0x10]
+8ba5f  fmul dword ptr [edx]
+8ba61  faddp st(1)
+8ba63  fld dword ptr [eax + 0x18]
+8ba66  fmul dword ptr [edx + 8]
+8ba69  faddp st(1)
+8ba6b  fadd dword ptr [eax + 0x1c]
+8ba6e  fstp dword ptr [ebx + 4]
+8ba71  fld dword ptr [eax + 0x24]; out.z = m9*y + m8*x + m10*z + m11
+8ba74  fmul dword ptr [edx + 4]
+8ba77  fld dword ptr [eax + 0x20]
+8ba7a  fmul dword ptr [edx]
+8ba7c  faddp st(1)
+8ba7e  fld dword ptr [eax + 0x28]
+8ba81  fmul dword ptr [edx + 8]
+8ba84  add ebx, 0x34; vertices are 0x34 bytes apart
+8ba87  faddp st(1)
+8ba89  add edx, 0x34
+8ba8c  fadd dword ptr [eax + 0x2c]
+8ba8f  inc ecx
+8ba90  fstp dword ptr [ebx - 0x2c]
+8ba93  cmp ecx, esi
+8ba95  jl 0x8ba3d</pre>
+<h4>Clip code of a triangle (0x8a21f): 3 sign bits -> jump table</h4>
+<pre class="asm">8a21f  mov ebp, dword ptr [0xd45d4]; the three &quot;x - z&quot; values of the triangle were stored as floats; their sign bits are collected ...
+8a225  xor eax, eax
+8a227  add ebp, ebp; ... with add/adc into a 3 bit code (CF = sign bit)
+8a229  mov ebp, dword ptr [0xd45d0]
+8a22f  adc eax, eax
+8a231  add ebp, ebp
+8a233  mov ebp, dword ptr [0xd45cc]
+8a239  adc eax, eax
+8a23b  add ebp, ebp
+8a23d  adc eax, eax
+8a23f  mov ebp, dword ptr [eax*4 + 0xd4590]; code 0 = all outside, 7 = all inside, others: 1 or 2 triangles after clipping (jump table 0xd4590)
+8a246  jmp ebp</pre>
+<h4>Rasteriser: span set-up (0x89fa4)</h4>
+<pre class="asm">89fa4  mov eax, dword ptr [0xceed4]; step per pixel = (end-start)/8 for U (high half) and V (low half) packed in one register
+89fa9  shl eax, 0x10; U step &lt;&lt; 16
+89fac  mov ax, word ptr [0xceedc]; | V step (16 bits)
+89fb2  mov dword ptr [0xcef14], eax
+89fb7  mov ebx, dword ptr [0xceec4]; ebx = U&lt;&lt;16 | V : two 8.8 fixed point texture coordinates in one dword
+89fbd  shl ebx, 0x10; U in the high half
+89fc0  mov bx, word ptr [0xceecc]; V in the low half
+89fc7  mov esi, dword ptr [0xceeb4]; esi = texture (256x256 bytes)
+89fcd  mov ecx, edx
+89fcf  mov edx, ebx; texel offset = (V int &lt;&lt; 8) | U int
+89fd1  shr edx, 0x18; edx = U integer (bits 24-31)
+89fd4  mov dh, bh; dh = V integer (bits 8-15 of ebx)
+89fd6  mov ebp, dword ptr [0xcef10]
+89fdc  mov eax, dword ptr [0xcef14]
+89fe1  jmp ecx; jump into the unrolled 8-pixel sequence</pre>
+<h4>Rasteriser: 8-pixel block (0x8a0a7)</h4>
+<pre class="asm">8a0a7  add ebx, eax; ebx += step  (one add moves U and V; a carry from V leaks into U, as in the original)
+8a0a9  mov edx, ebx; texel offset of this pixel
+8a0ab  shr edx, 0x18
+8a0ae  mov dh, bh
+8a0b0  mov ebp, dword ptr [0xcef10]
+8a0b6  mov eax, dword ptr [0xcef14]
+8a0bb  mov cl, byte ptr [esi + edx]; texel
+8a0be  add ebx, eax; advance the texture coordinates
+8a0c0  add byte ptr [ebp - 7], cl; dest += texel (byte wrap) - additive drawing, so the draw order of the triangles does not matter
+8a0c3  mov edx, ebx; next pixel (the 8-pixel block is unrolled)
+8a0c5  shr edx, 0x18
+8a0c8  mov dh, bh
+8a0ca  mov cl, byte ptr [esi + edx]
+8a0cd  add ebx, eax</pre>
+<h4>Glow smear (0x35e2c, row pass)</h4>
+<pre class="asm">35e5b  mov edx, 0x140
+35e60  mov ebx, 0; ebx = previous output pixel (0 at the start of a row)
+35e65  mov al, byte ptr [edi]
+35e67  mov cl, byte ptr [ebx + 0xc472c]; T[prev] = round(prev * 0.65)
+35e6d  add al, cl; pixel + T[prev]
+35e6f  inc edi
+35e70  sbb cl, cl; saturate
+35e72  or al, cl
+35e74  dec edx
+35e75  mov bl, al; the new pixel is the &quot;previous&quot; one for its right neighbour
+35e77  mov byte ptr [edi - 1], al; in place
+35e7a  jne 0x35e65
+35e7c  dec ebp
+35e7d  jne 0x35e5b</pre>
+<h4>Port</h4>
+<pre class="js">// perspective-correct span: every 8 pixels 1/z is inverted, u/z and v/z are divided and the steps are packed
+const eax = ((stepU &lt;&lt; 16) | (stepV &amp; 0xffff)) &gt;&gt;&gt; 0;                 // 8.8 + 8.8 in one dword
+for (let i = 0; i &lt; 8; i++) {
+  b = (b + eax) &gt;&gt;&gt; 0;
+  screen[q++] = (screen[q] + tex[(b &gt;&gt;&gt; 24) | (((b &gt;&gt;&gt; 8) &amp; 255) &lt;&lt; 8)]) &amp; 255;   // dest += texel
+}
+// glow smear: out = sat(in + round(0.65*previous out)), first along rows then down columns
+const v = buf[i] + T[p]; p = Math.min(255, v); buf[i] = p;</pre>
+<dl class="facts">
+<dt>script</dt><dd><code>echo4 plani {SCREEN8} {SCREEN8} {Frame*0.8}</code> after <code>fillbuffer</code> (the buffer is cleared every frame), followed by blit, matrix, lowpass and two palette effects</dd>
+<dt>buffers</dt><dd>8 bit 320x200, in/out (the original prints an error if it is not 320x200x8)</dd>
+<dt>timeline</dt><dd>order 23 - 26 (t = 165.5 - 188.5 s)</dd>
+<dt>original</dt><dd>init 0x1b71a (calls 0x5ab4d: geometry and the blob texture 0x14c770), run 0x1b7a8 -> 0x5ba3b; depth buckets 0x59ab8, draw 0x59f9c, clip 0x8a1fc/0x8a633/0x8a5c8/0x8a3d1, raster 0x8985d, smear 0x35e2c/0x35e82</dd>
+<dt>state</dt><dd>texture scroll global 0xc8a2c is shared with echo6 (echo6 runs before): the port keeps one shared value</dd>
+<dt>verified</dt><dd>pixel-exact vs the original: 4 consecutive frames (0 of 64000 bytes); the 3D pipeline alone against 300 random triangles incl. clipped and near-plane cases (0 differing pixels); texture generator 65536/65536 bytes; matrix routines bit-exact</dd>
+</dl>
+</section>

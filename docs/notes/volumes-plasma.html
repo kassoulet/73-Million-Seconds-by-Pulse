@@ -1,0 +1,65 @@
+<section class="fx" id="fx-volumes-plasma">
+<h3>plasma1volume and the volume arithmetic</h3>
+<p><code>plasma1volume PlasmaVolume 0 1.4</code> fills a volume with a spherical 3D plasma: <code>v = a + b&middot;sin(r + 0.02&middot;Frame)</code>, where <em>r</em> is the distance of the grid
+point to the centre of the cube (grid coordinates &minus;7.5 &hellip; +7.5) and <em>a</em>, <em>b</em> are expressions. The distances are tabulated once (<code>0x18ac2</code>,
+4096 floats, the original calls the C <code>sqrt</code>); each frame the x87 code evaluates <code>fsin</code> for only one octant (8&times;8&times;8 = 512 sines) and
+mirrors it in x, y and z with <code>rep movsd</code>, which is exact because the field is symmetric. In the script the plasma is then multiplied into the
+metaball field (<code>mulvolume OurVolume OurVolume PlasmaVolume</code>) so that the blobs get a travelling ripple.</p>
+<p>The other volume effects are tiny 4-floats-per-iteration x87 loops: <code>addvolume</code>, <code>subvolume</code>, <code>mulvolume</code> (dst = A op B),
+<code>fadevolume dst src f</code> (dst = src&middot;f(Frame); the script uses &minus;1 to invert the field) and
+<code>morphvolume dst A B t</code> which is <code>dst = A&middot;t + B&middot;(1&minus;t)</code> &mdash; note the order, the first source gets the weight <em>t</em>.
+All write 32-bit floats, so the JavaScript port (Float32Array) reproduces them exactly.</p>
+<h4>Plasma inner loop (original 0x584b6)</h4>
+<pre class="asm">
+584b4  mov  ch, 8                          ; 8 rows
+584b6  fld  dword [edi]                    ; edi walks the distance table
+584b8  fadd st(3)                          ; + Frame*0.02
+584ba  fsin
+584bc  fmul st(2)                          ; * b
+584be  fadd st(1)                          ; + a
+584c0  fst  dword [eax + edx]              ; (x,   y)      four mirrored stores
+584c3  fst  dword [eax + esi]              ; (15-x, y)
+584c6  fst  dword [eax + ebx]              ; (x,   15-y)
+584c9  fstp dword [eax + ebp]              ; (15-x, 15-y)
+584cc  add  edx, 4                         ; x++ ...
+584cf  sub  esi, 4                         ; ... mirrored pointers walk backwards
+584d2  add  ebx, 4
+584d5  sub  ebp, 4
+584d8  add  edi, 4
+584db  dec  cl
+584dd  jne  0x584b6
+...
+58501  pop  esi                            ; after 8 slices: copy slice k to slice 15-k
+58502  mov  edi, esi
+58504  add  edi, 0x3c00
+5850f  mov  ecx, 0x100
+58514  rep  movsd
+</pre>
+<h4>Morph loop (original 0x5843f)</h4>
+<pre class="asm">
+5843f  fld  dword [edx]                    ; A[i]
+58441  fmul st(1)                          ; * t
+58443  fld  dword [ebx]                    ; B[i]
+58445  fmul st(3)                          ; * (1-t)
+58447  fld  dword [edx + 4]                ; four floats are handled per pass,
+5844a  fmul st(3)                          ; interleaved to hide the FPU latency
+...
+58471  faddp st(3)
+58475  fstp dword [eax]                    ; dst[i] = A*t + B*(1-t)
+58480  add  eax, 0x10
+58483  add  edx, 0x10
+58486  add  ebx, 0x10
+58489  dec  ecx                            ; ecx = 0x1000/4
+5848a  jne  0x5843f
+</pre>
+<h4>JavaScript</h4>
+<pre class="js">
+v = a + b * Math.sin(PLASMA_TAB[x + 16*y + 256*z] + phase);          // phase = 0.02 * Frame
+dst[i] = A[i] * t + B[i] * (1 - t);                                      // morphvolume
+</pre>
+<dl class="facts">
+<dt>script</dt><dd><code>plasma1volume mtb7 {} {} {PlasmaVolume 0 1.4}</code>, <code>mulvolume mtb8 {} {} {OurVolume OurVolume PlasmaVolume}</code>, <code>morphvolume mtb6 {} {} {OurVolume OurVolume V8Volume clip10(0.9+0.2*cos(Frame*0.005))}</code>, <code>morphvolume mtbX {} {} {OurVolume OurVolume SrcVolume clip10(Frame*0.002-0.3)}</code>, <code>fadevolume mtbA {} {} {OurVolume OurVolume -1}</code>, <code>fadevolume mtbU</code> (fade-out at order 17)</dd>
+<dt>code</dt><dd>plasma <code>0x18ac2/0x18ce5/0x5848f</code>, add <code>0x583d2</code>, sub <code>0x58407</code>, mul <code>0x5839d</code>, fade <code>0x5836c</code>, morph <code>0x5843c</code></dd>
+<dt>port</dt><dd>bit-identical to the original (all 4096 floats) over 6 frames of the real chain copy/morph/metaballs/plasma/mul/morph/fade</dd>
+</dl>
+</section>

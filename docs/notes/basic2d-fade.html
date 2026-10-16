@@ -1,0 +1,50 @@
+<section class="fx" id="fx-fade">
+<h3>fade / xfade - table driven alpha</h3>
+<p><em>fade</em> blends a buffer towards a constant colour, <em>xfade</em> cross-fades two buffers. The alpha is <code>trunc(255*expr(Frame))</code> where <code>Frame</code> is the event age in centiseconds (the script writes e.g. <code>1.0-clip10(Frame*0.003)</code>). There is no multiplication in the pixel loop: at start-up the engine builds two 256x256 byte tables, <code>T284[a][v] = v*(256-a)>>8</code> and <code>T28c[a][v] = v*a>>8</code> (we read them back from the emulator to check this). Per frame the colour contribution is computed once, and the inner loop is three lookups and one add per pixel.</p>
+<p>The loops are <strong>self-modifying code</strong>: a small setup routine (0x51ee0) pokes the address of the selected table row <code>[dc284]+a*256</code> and the pre-computed packed colour straight into the immediates of the loop (0x51f4a, 0x51f5b, 0x51f64, 0x51f6a), so the loop needs no register for the table or the colour. xfade (0x51f84/0x51fad) does the same with both tables and adds <code>in0*a>>8 + in1*(256-a)>>8</code> on bytes. Note that xfade only writes the three colour bytes, the 4th byte of the output pixel is left alone.</p>
+<pre class="asm">
+; 0x51ee0  setup: eax=[0xdc28c] (v*a>>8 table) edx=[0xdc284] (v*(256-a)>>8) ebx=a ecx=0x00RRGGBB colour
+51ee0  shl ebx, 8
+51ee3  add eax, ebx             ; row a of the colour table
+51ee5  add edx, ebx             ; row a of the pixel table
+51ee7  mov [0x51f4a], edx       ; patch the loop: table base for byte 2
+51eed  mov [0x51f5b], edx       ;                  byte 1
+51ef3  mov [0x51f64], edx       ;                  byte 0
+51ef9  mov edx, ecx
+51efb  mov ebx, ecx
+51efd  shr edx, 0x10            ; split r,g,b
+51f00  shr ebx, 8
+...
+51f15  mov dl, [eax+edx]        ; colour*a>>8 per channel
+51f1b  mov dh, [eax+ebx]
+51f1e  mov dl, [eax+ecx]
+51f21  mov [0x51f6a], edx       ; patch the immediate of 'add eax, imm' in the loop
+; 0x51f28  the loop, 1 pixel per iteration (ebp=src, edi=dst, esi=-count*4)
+51f48  mov al, [edx+0x270f]     ; imm32 patched to the table row: pixel byte 2 -> (v*(256-a))>>8
+51f4e  mov bl, [ebp+esi+1]
+51f52  shl eax, 0x10
+51f55  mov cl, [ebp+esi]
+51f59  mov ah, [ebx+0x270f]     ; byte 1
+51f5f  add esi, 4
+51f62  mov al, [ecx+0x270f]     ; byte 0
+51f69  add eax, 0x121212        ; imm32 patched: the packed colour*a>>8
+51f6e  mov dl, [ebp+esi+2]      ; next pixel's byte 2 (software pipelining)
+51f72  mov [edi+esi-4], eax
+51f76  test esi, esi
+51f78  mov eax, 0
+51f7d  jne 0x51f48
+</pre>
+<pre class="js">
+const A = a > 255 ? 255 : a, IA = 256 - A;
+const cr = (trunc(r*255) * A) >> 8, cg = ..., cb = ...;      // colour part, once per frame
+d[k] = (((((p>>16)&255)*IA)>>8) + cr) << 16 | ... ;          // pixel part
+// xfade: d[k] = ((s0[k]*a)>>8) + ((s1[k]*(256-a))>>8)  for the 3 colour bytes
+</pre>
+<dl class="facts">
+<dt>script</dt><dd><code>fade name {in} {out} {r g b expr}</code>, <code>xfade name {in0 in1} {out} {expr}</code> (alpha = weight of in0)</dd>
+<dt>alpha</dt><dd>float result stored as float32, times 255.0, truncated (the engine's ftol sets the FPU to truncate)</dd>
+<dt>a &lt;= 0</dt><dd>fade: plain copy in to out. xfade: copy in1. xfade with a &gt;= 255: copy in0.</dd>
+<dt>depths</dt><dd>32 bit (used by the script), 8 bit (fade to palette index 85*(r+g+b)) and 16 bit variants exist</dd>
+<dt>verified</dt><dd>JS output == original byte for byte on random buffers (32 bit fade, 8 bit fade, xfade)</dd>
+</dl>
+</section>

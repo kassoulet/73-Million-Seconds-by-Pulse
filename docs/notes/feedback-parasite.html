@@ -1,0 +1,61 @@
+<section class="fx" id="fx-parasite">
+<h3>parasite - wobbling texture bands</h3>
+<p>Each of the 200 scanlines is cut into 16 vertical bands whose left edges wander on sine curves: <code>X[j] = trunc(40*sin(y*K1[j] + e*K2[j]) * sin(0.01*y + e*K4[j]) + 40*j)</code>, e = 0.01 x time. K1, K2, K4 are 16 random numbers drawn once with the C-runtime <code>rand()</code> (LCG <code>seed*0x41c64e6d+12345</code>, seed 1; the port regenerates the same values). Bands are painted from right to left with a 1-pixel-high strip of the 256x256 8 bit picture <code>som.png</code> stretched to the band width: row <code>(37*j + y + 40*e) &amp; 255</code>, so the picture seems to flow through the bands. What is left of the leftmost band is cleared to black.</p>
+<p>The colour of a texel is looked up in a 256 x 256 table of 32 bit colours built at start-up: the palette entry (6 bit VGA value, <code>png palette &gt;&gt; 2</code>) times <code>cos^3((1 - L/256)*pi/2)/64</code> converted with another magic-number trick (<code>fadd 1.5*2^44</code>: the low dword is the value times 256, clamped to 255). The brightness level L comes from the band width, <code>L = min(255, 32*255/width)</code>: wide bands are dark, narrow ones bright, which gives the parasites their pulsing glow.</p>
+<p>Per band the step through the texture row is a 16.16 number 255/width computed by the FPU; the span filler 0x59190 is self-modifying: the integer part is patched into an <code>adc ebx, imm32</code> and the fraction into an <code>add esi, imm32</code>, so the loop is just 7 instructions per pixel and the fraction overflow (carry) automatically bumps the texel pointer. Exactly like a Bresenham line.</p>
+<h4>Span set-up: fixed point step, level, patching (0x591bd)</h4>
+<pre class="asm">591bd  add ebx, esi
+591bf  fld st(0); s = 255/width (st0)
+591c1  fabs; |s|
+591c3  fadd dword ptr [0xc8964]; + 1.5*2^36 : magic number -&gt; 16.16 fixed point in the low dword
+591c9  fxch st(1)
+591cb  fadd dword ptr [0xc8964]
+591d1  fxch st(1)
+591d3  fstp qword ptr [0xc8958]
+591d9  fstp qword ptr [0xc8950]
+591df  mov eax, dword ptr [0xc8958]
+591e4  mov esi, dword ptr [0xc8950]
+591ea  sar eax, 0xb; level = |s|*32  (&gt;&gt; 11 of the 16.16 value)
+591ed  mov ebp, dword ptr [0xc8950]
+591f3  cmp eax, 0xff; clamp to 255
+591f8  jbe 0x59200
+591fa  mov eax, 0xff
+591ff  nop
+59200  sar esi, 0x10; integer part of s
+59203  nop
+59204  shl ebp, 0x10; fraction of s in the upper 16 bits
+59207  mov dword ptr [0x59226], esi; patch: adc operand
+5920d  shl eax, 0xa; level * 1024 = row of the 256x256 colour table
+59210  mov dword ptr [0x59232], ebp; patch: add operand
+59216  add edx, eax</pre>
+<h4>Span loop (0x59224)</h4>
+<pre class="asm">59218  xor esi, esi; esi = fraction accumulator, eax = texel index
+5921a  xor eax, eax
+5921c  nop
+5921d  mov al, byte ptr [ebx]; al = first texel of the band row
+5921f  add esi, ebp; esi = fraction of the step
+59221  nop
+59222  jmp 0x59224
+59224  adc ebx, 0x4d2; adc ebx, imm32  - the integer part of the step is PATCHED into this instruction (0x59226)
+5922a  mov ebp, dword ptr [edx + eax*4]; colour = table[level][texel]
+5922d  mov dword ptr [edi + ecx*4], ebp; store pixel (0x00RRGGBB)
+59230  add esi, 0xbc614e; add esi, imm32 - the fraction is patched into the operand (0x59232)
+59236  mov al, byte ptr [ebx]; next texel
+59238  nop
+59239  inc ecx; ecx = -count ... 0
+5923a  jne 0x59224; loop</pre>
+<h4>Port</h4>
+<pre class="js">// edge j of scanline y, e = 0.01*(frame-first)
+X[j] = ftol(Math.sin(y*K3 + e*K4[j]) * Math.sin(y*K1[j] + e*K2[j]) * 40 + j*40);
+// band j covers X[j] .. previous band start, row (37*j + y + 40*e) &amp; 255 of som.png, brightness by band width
+const S = rint(255 / width * 65536), L = Math.min(255, rint(Math.abs(255/width) * 65536) &gt;&gt; 11);
+// pixel: colour(texel) = min(255, rint(256 * g[L] * (palette&gt;&gt;2)))   g[L] = cos^3((1-L/256)*pi/2)/64
+pos += (S &gt;&gt; 16) + carry;  esi += (S &lt;&lt; 16) &gt;&gt;&gt; 0;  carry = esi overflowed</pre>
+<dl class="facts">
+<dt>script</dt><dd><code>parasite pa1 {SCREEN3} {SCREEN3} {som.png}</code> (and pa2 on PULSE); other effects (blend, lowpass, fade) combine the buffers</dd>
+<dt>buffers</dt><dd>32 bit 320x200 output only (error "Output buffer muse be 320x200x32" otherwise); picture = som.png, 256x256, 8 bit</dd>
+<dt>timeline</dt><dd>order 11 50 - 12 60 (t = 79.3 - 85 s)</dd>
+<dt>original</dt><dd>init 0x19389 (random tables + colour table 0x118028), run 0x1969f, band filler 0x59190, colour packing 0x8294</dd>
+<dt>verified</dt><dd>3 frames of the original: 0 of 64000 pixels differ</dd>
+</dl>
+</section>

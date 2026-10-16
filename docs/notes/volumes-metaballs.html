@@ -1,0 +1,72 @@
+<section class="fx" id="fx-volumes-metaballs">
+<h3>metaballs &mdash; blobby spheres added into a 16&times;16&times;16 grid</h3>
+<p>A <em>volume</em> in this engine is a named block of 4096 floats (16&times;16&times;16, index <code>x + 16y + 256z</code>, <code>blob.c</code>). <code>volume3D</code> creates one
+(optionally loading <code>v8.dat</code> / <code>vbox.dat</code>, which are just 16 KB of raw floats), <code>clearvolume</code> and <code>copyvolume</code> reset it.
+<code>metaballs OurVolume test1.mbs</code> reads exactly 8 text lines &ldquo;X Y Z R C&rdquo; from the file; every field is an expression of <code>Frame</code>
+(for example <code>sin(Frame*0.006*3.4+5.4)</code>), evaluated each frame with the same expression compiler as the rest of the script.
+The field of a ball is added (<code>+=</code>, nothing is cleared) to the volume. Grid point <em>i</em> sits at <code>(i&minus;8)&middot;0.25</code> on each axis,
+so the 16 points cover &minus;2 &hellip; +1.75.</p>
+<p>The falloff is a quartic in the squared distance, <code>f(d&sup2;) = (A&middot;d&sup2; + B)&middot;d&sup2; + C</code> with <code>A = C/R&sup4;</code>, <code>B = &minus;2C/R&sup2;</code>:
+it equals C at the centre and goes to zero with zero slope at <code>d&sup2; = R&sup2;</code>, so no square root is needed and balls blend smoothly.
+Negative C (the strength column of <code>test1.mbs</code> alternates between +0.5 and &minus;0.9) digs holes into the field.
+To stay fast on a 486/Pentium the code first builds three tables of 16 squared distances per axis, clips the loops to the box where
+<code>dx&sup2; &le; R&sup2;</code>, and only evaluates the polynomial inside the sphere. The blob library also contains a second primitive type (<code>type 2</code>,
+<code>0x16dc9</code>) that the script never uses.</p>
+<h4>Inner loop (original 0x16c54, per grid point of the sphere's bounding box)</h4>
+<pre class="asm">
+16c54  mov  eax, dword [ebp - 0x10]
+16c57  shl  eax, 2
+16c5a  fld  dword [eax + ebp - 0xfc]      ; dx2[x]  (table of (x*0.25-8*0.25 - X)^2)
+16c61  fadd dword [ebp - 0x3c]             ; + dy2[y] + dz2[z]  -> d2
+16c64  fstp dword [ebp - 0x2c]
+16c67  mov  eax, dword [ebp - 0x30]        ; eax = ball record: +4 R^2, +0xc A, +0x10 B, +0x14 C
+16c6a  fld  dword [ebp - 0x2c]
+16c6d  fcomp dword [eax + 4]               ; d2 &gt;= R^2 ?  outside the ball
+16c70  fnstsw ax
+16c72  sahf
+16c73  jae  0x16c94
+16c75  mov  eax, dword [ebp - 0x30]
+16c78  fld  dword [ebp - 0x2c]
+16c7b  fmul dword [eax + 0xc]              ; d2 * A
+16c7e  mov  eax, dword [ebp - 0x30]
+16c81  fadd dword [eax + 0x10]             ; + B
+16c84  fmul dword [ebp - 0x2c]             ; * d2
+16c87  mov  eax, dword [ebp - 0x30]
+16c8a  fadd dword [eax + 0x14]             ; + C
+16c8d  mov  eax, dword [ebp - 4]           ; pointer into the volume
+16c90  fadd dword [eax]
+16c92  fstp dword [eax]                    ; vol += f(d2)
+16c94  mov  eax, dword [ebp - 4]
+16c97  add  dword [ebp - 4], 4
+16c9b  jmp  0x16c4c
+</pre>
+<h4>Ball set-up (original 0x16893)</h4>
+<pre class="asm">
+168ec  fld  dword [ebp + 0x28]             ; R
+168ef  fmul dword [ebp + 0x28]
+168f9  fstp dword [eax + 4]                ; R^2
+1690a  fld  dword [edx + 4]
+1690d  fmul dword [eax + 4]                ; R^2 * R^2
+16910  fdivr dword [ebp + 0x2c]            ; C / R^4  -> A (stored at +0xc)
+16924  fld  dword [eax + 4]
+16927  fld  dword [ebp + 0x2c]
+1692a  fmul qword [0xb8093]                ; C * 2.0
+16930  fchs
+16932  fdivrp st(1)                        ; st(1) = st(0) / st(1) = (-2C) / R^2  -> B (stored at +0x10); C itself goes to +0x14
+</pre>
+<h4>JavaScript</h4>
+<pre class="js">
+const R2 = f32(R * R), A = f32(C / (R2 * R2)), B = f32(-2 * C / R2);
+...
+for (let x = x0; x &lt;= x1; x++, p++) {
+  const d2 = f32(dx2[x] + t);
+  if (d2 &lt; R2) vol[p] += (d2 * A + B) * d2 + C;      // Float32Array store = fstp dword
+}
+</pre>
+<dl class="facts">
+<dt>script</dt><dd><code>metaballs mtb5 {} {} {OurVolume test1.mbs}</code> (8 balls, jabole scene) and <code>test2.mbs</code> (6 balls of strength 0.9 plus two empty lines, volumesprites scene)</dd>
+<dt>time</dt><dd>order 15&ndash;17 (about 106&ndash;121 s) and order 33&ndash;35 (about 245&ndash;262 s)</dd>
+<dt>code</dt><dd>init <code>0x175e9</code>, run <code>0x178c6</code>, ball renderer <code>0x169a8</code>, ball set-up <code>0x16893</code></dd>
+<dt>port</dt><dd>bit-identical (0 differing floats of 4096) to the original on 6 frames of the real script chain and 3 frames of <code>test2.mbs</code></dd>
+</dl>
+</section>

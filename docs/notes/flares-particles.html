@@ -1,0 +1,89 @@
+<section class="fx" id="fx-flares">
+<h3>Lens-flare particles (setupflares / flareparticles)</h3>
+<p>Between about 88 s and 106 s a cloud of soft glowing blobs streams along the camera path of <code>smoke.exp</code>. Every one of the five lights of that scene
+(<code>f2.source</code> ... <code>f2.source04</code>) owns a <code>flareparticles</code> event with 100 particles. A particle is born on the (moving) light, drifts with a random
+velocity, grows from nothing to 200 and then 300 world units while it fades out, and is finally reborn. Nothing is a polygon: each particle is a screen-aligned
+square that is texture-mapped with the 128x128 greyscale <code>flare2</code> picture and <em>added</em> to an 8-bit buffer.</p>
+<p>The original is plain Watcom C for the particle logic (float maths, <code>rand()</code>) and a hand-written, <em>self-modifying</em> assembly routine for the blitter
+at <code>0x5976c</code>. The routine patches the texture address, the table address and the 16.16 texture steps straight into the inner loop before running it,
+so the loop needs no spare registers: 8 instructions per pixel. Each texel goes through a 256-entry table row (<code>(texel*intensity)&gt;&gt;8</code>, built once at start-up)
+and is added to the destination with unsigned saturation (<code>add</code>, <code>sbb dl,dl</code>, <code>or</code>: no branch, no MMX).</p>
+<p>The random generator is the Watcom <code>rand()</code> (LCG 0x41C64E6D, 0x3039, bits 16..30) with no <code>srand</code>, so the sprite cloud is the same every run.
+<code>setupflares</code> only evaluates its expression (here <code>2</code>) and stores it in the scene record, where the 3D renderer reads it as the size factor of its own light halos;
+the particles do not use it. <code>ctx.control</code> is not used by these effects.</p>
+
+<h4>Inner loop of the sprite blitter (0x59954 - 0x59989)</h4>
+<pre class="asm">
+; ecx = (v&lt;&lt;8)|u  (ch = texture row, cl = texture column, 8 bit wrap)   esi = fraction of u in the top 16 bits
+; the immediates marked * are rewritten at 0x597d9..0x59943 before the loop starts
+59954  mov cl, [0xc89fe]            ; start column (integer part of u0)
+5995a  mov esi, [0xc8a00]           ; fraction of u0 &lt;&lt; 16
+59960  mov ebp, [0xc8a20]           ; pixels in this row
+59966  xor eax, eax
+59968  mov al, [ecx + 0x1869f]      ; * texel = texture[ecx]       (imm32 = texture base, patched at 0x5996a)
+5996e  add esi, 0xbc614e            ; * u fraction += du_frac&lt;&lt;16    (patched at 0x59970)
+59974  adc cl, 0xc                 ; * u int += du_int + carry     (patched at 0x59976)
+59977  mov bl, [edi]               ; destination pixel
+59979  add bl, [eax + 0x98967f]     ; * += table[intensity*256 + texel]  (patched at 0x5997b)
+5997f  inc edi
+59980  sbb dl, dl                  ; carry -&gt; 0xff
+59983  or  bl, dl                  ; saturate to 255
+59985  dec ebp
+59986  mov [edi-1], bl
+59989  jne 0x59968
+; end of row: advance v the same way
+5998b  mov ebp, [0xc8a04]  / 59991 mov ebx, [0xc8a28] / 59998 mov edx, [0xc89e0] / 5999e mov al, [0xc89de]
+599a3  add ebx, edx                ; v fraction += dv_frac&lt;&lt;16
+599a5  adc ch, al                  ; v int += dv_int + carry
+599b3  add edi, [0xc8a18]          ; skip to the next screen row
+</pre>
+<p>Before the loop the routine turns the four floats (centre, width, height) into a rectangle with the classic
+<em>magic number</em> trick: <code>fadd 1.5*2^36</code> then store as a double, whose low 32 bits are the value in 16.16 fixed point (round to nearest even).
+The left/top edge is rounded up (<code>add 0xffff, sar 16</code>), clipped against the screen, and the texture start is moved by the clipped amount times the step.</p>
+<pre class="asm">
+5976c  pushal
+5976d  fld st(0)  / fmul [0xc89d0] (=0.5)    ; half sizes
+...    (x0=X-W/2, x1=X+W/2, y0=Y-H/2, y1=Y+H/2)
+597b1  fstp qword [0xc89f4] ...              ; x0,y0,x1,y1 + 1.5*2^36  (fadd [0xc8a14] before)
+597cd  fdivr dword [0xc5548]                 ; du = 128 / W   (texture width / sprite width)
+597d9  mov [0x5996a], edx                    ; self-modifying code: texture pointer
+597df  mov [0x5997b], ebx                    ;                      shading table row
+59843  fdivr dword [0xc554c]                 ; dv = 128 / H
+598c8  fmul st(1) ... fmul st(3)             ; u0=(x0c-x0)*du, v0=(y0c-y0)*dv  (sub-pixel start)
+</pre>
+
+<h4>Particle update (flareparticles run, 0x1ac7e)</h4>
+<pre class="asm">
+1af75  fld  [esi+0x18]  / fadd [dt]  / fstp [esi+0x18]      ; age += dt
+1af81  fld  [esi+0x1c]  / fadd [esi+0x20]                   ; fade-in + fade-out time
+1af8d  fcomp [esi+0x18] / jae 0x1b09b                       ; still alive -&gt; move
+        ; dead: copy the light position, new random velocity (3 x rand()), age = 0
+1b09b  fld [esi+0x0c] / fmul [dt] / fadd [esi] / fstp [esi]     ; x += vx*dt   (y, z likewise)
+1b0d2  fld [esi+0x18] / fcomp [esi+0x1c] / jbe 0x1b127          ; age &gt; fade-in ?
+1b0e0  t=(age-in)/out ; size=(300-200)*t+200 ; intensity=(0.01-0.2)*t+0.2   (fade out)
+1b127  t=age/in       ; size=(200-0)*t+0   ; intensity=(0.2-0)*t+0          (fade in)
+1b166  fld intensity / fmul 255.0 / call 0x1ed6a (frndint, truncating) / cmp 0xff
+1b1c0  view = M * p + T  (3x4 matrix at camera+0x98), then 0x588d8: sx = vx*fx/vz+160, rejects vz &lt;= near
+1b25b  half-size = fx*size/vz ; skip if &gt;= 320 ; call 0x5976c(width, texture, table + (idx&lt;&lt;8), W, H, sx, sy)
+</pre>
+<pre class="js">
+// the same in JS (flares.js)
+part[b+6] += dt;                                          // age
+if (part[b+7] + part[b+8] &lt; part[b+6]) respawn(); else { part[b] += part[b+3]*dt; ... }
+if (age &gt; l1) { t = (age-l1)/l2; size = (p38-p34)*t+p34; inten = (p44-p40)*t+p40; }
+else          { t = age/l1;      size = (p34-p30)*t+p30; inten = (p40-p3c)*t+p3c; }
+idx = Math.min(255, Math.trunc(inten*255));
+// blitter inner loop
+const t = tex[(ch&lt;&lt;8)|cl];
+esi += duFrac; c = esi &gt; 0xffffffff ? 1 : 0; esi &gt;&gt;&gt;= 0;
+cl = (cl + duInt + c) &amp; 255;
+const s = dst[p] + TABLE[tblBase + t]; dst[p++] = s &gt; 255 ? 255 : s;
+</pre>
+
+<dl class="facts">
+<dt>Script</dt><dd><code>setupflares naz1 {} {} {scena 2}</code>, then five <code>flareparticles nazN {} {SCREEN8} {scena 0 f2.sourceNN 100 30 370 0.6 0 0 200 300 0 0.2 0.01}</code>; followed by <code>radialblur</code>, <code>blit</code> to SCREEN, <code>blend</code> with TLO. Order 12 row 60 to order 15 row 16 (88.2 s to 106 s).</dd>
+<dt>Parameters</dt><dd>scene event, camera, light, particle count (100), fade-in 30 cs, fade-out 370 cs, velocity range 0.6, life randomness 0, size 0 / 200 / 300, intensity 0 / 0.2 / 0.01.</dd>
+<dt>Buffers</dt><dd>8-bit SCREEN8 (320x200, palette applied later); textures flare1/flare2 = 128x128 8-bit PNG kept with a row stride of 256; table 256x256 bytes.</dd>
+<dt>Data</dt><dd>lights and camera come from smoke.exp (3D Studio style TCB spline tracks, animation speed 69 units/s). Particle record: 9 floats (36 bytes).</dd>
+</dl>
+</section>
