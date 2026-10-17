@@ -14,6 +14,10 @@ const X = new Float64Array(3), Y = new Float64Array(3), U = new Float64Array(3),
 // switch). Here the port flips to the x-major walker once the triangle's y-extent drops under a
 // pixel, which is the same set of near-horizontal slivers.
 const MAJOR_EPS = 1.0;
+// 0x3cb851ec: the original's x87 denormal guard for a near-zero edge delta. When a triangle's top
+// sub-edge is flatter than this, dividing by it blows up (xr extrapolates far off screen, painting a
+// stray scanline); use the other, well-conditioned edge instead.
+const EDGE_EPS = 0.0225;
 
 function order(ax, ay, au, av, bx, by, bu, bv, cx, cy, cu, cv) {
   X[0] = ax; Y[0] = ay; U[0] = au; V[0] = av; X[1] = bx; Y[1] = by; U[1] = bu; V[1] = bv; X[2] = cx; Y[2] = cy; U[2] = cu; V[2] = cv;
@@ -35,7 +39,8 @@ function walk(H, span) {
     const tl = (y - y0) / hl;                             // long edge 0 -> 2
     const xl = X[0] + (X[2] - X[0]) * tl, ul = U[0] + (U[2] - U[0]) * tl, vl = V[0] + (V[2] - V[0]) * tl;
     let xr, ur, vr;
-    if (y < Y[1]) { const d = Y[1] - y0; const ts = d > 1e-9 ? (y - y0) / d : 0; xr = X[0] + (X[1] - X[0]) * ts; ur = U[0] + (U[1] - U[0]) * ts; vr = V[0] + (V[1] - V[0]) * ts; }
+    const dtop = Y[1] - y0;
+    if (y < Y[1] && dtop > EDGE_EPS) { const ts = (y - y0) / dtop; xr = X[0] + (X[1] - X[0]) * ts; ur = U[0] + (U[1] - U[0]) * ts; vr = V[0] + (V[1] - V[0]) * ts; }
     else { const d = y2 - Y[1]; const ts = d > 1e-9 ? (y - Y[1]) / d : 0; xr = X[1] + (X[2] - X[1]) * ts; ur = U[1] + (U[2] - U[1]) * ts; vr = V[1] + (V[2] - V[1]) * ts; }
     if (xl <= xr) span(y, xl, ul, vl, xr, ur, vr); else span(y, xr, ur, vr, xl, ul, vl);
   }

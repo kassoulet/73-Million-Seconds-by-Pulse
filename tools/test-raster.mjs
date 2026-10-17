@@ -23,4 +23,10 @@ assert.ok(dst.includes(0x00ff00) && !dst.includes(0xff0000), '>=255 must wrap to
 const b = new Uint16Array(W * H);
 triDelta16(b, W, H, 5, 0, 3, 7, 3, 3.5, 3.9); // y-extent 0.9 < 1
 assert.ok(b.some((v) => v !== 0), 'x-major walker must draw a near-horizontal triangle');
+
+// flat top edge (dy ~ 0): must NOT divide by ~0 and spill to the left of the triangle.
+// vertices x in [150,157]; nothing may be painted left of 140 (0x3cb851ec guard)
+const d2 = new Uint32Array(320 * 200);
+triTex32(d2, 320, 200, tex, 255, 150.27, 98.67, 0, 0, 150.10, 92.045, 0, 0, 156.84, 92.047, 0, 0);
+for (let y = 0; y < 200; y++) for (let x = 0; x < 140; x++) assert.strictEqual(d2[y * 320 + x], 0, `spill at ${x},${y}`);
 console.log('raster self-check OK');
