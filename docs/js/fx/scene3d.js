@@ -235,7 +235,7 @@ export function renderScene(ctx, scene, buf, flagBeams) {
 
 // Shadow-volume "beams": for every triangle the three side quads of the prism extruded away from the light (v + (v-L)*9999) are
 // scan converted with the delta filler (+7 at the left edge, -7 at the right edge; prefix sum = `interpolator` effect).
-const EXT = 9999, BEAMK = 2; // prism quads are filled with weight 2 (measured in the golden SCREEN16 deltas: multiples of 2)
+const EXT = 9999, BEAMK = 2; // prism quads are filled with weight 2 (golden SCREEN16 deltas are multiples of 2)
 const _ea = new Float64Array(3), _eb = new Float64Array(3), _ec = new Float64Array(3);
 function beams(buf, scene, o, rn, L, W, H, hw, hh, zoom) {
   const m = o.mesh, I = m.indices, nt = I.length / 3, cx = rn.cx, cy = rn.cy, cz = rn.cz, dst = buf.data;
@@ -253,9 +253,22 @@ function beams(buf, scene, o, rn, L, W, H, hw, hh, zoom) {
     quad(dst, W, H, hw, hh, zoom, BEAMK, cx[b], cy[b], cz[b], cx[c], cy[c], cz[c], _ec, _eb);
   }
 }
-const _P = new Float64Array(24), _Q = new Float64Array(24);
+const _P = new Float64Array(24), _Q = new Float64Array(24), _S0 = new Float64Array(24), _S1 = new Float64Array(24);
+// Sutherland-Hodgman clip of a polygon (flat [x0,y0,x1,y1,...]) against one half-plane (0: x>=a, 1: x<=a, 2: y>=a, 3: y<=a)
+function clipHalf(src, n, axis, a, dst) {
+  let m = 0;
+  const inside = (x, y) => axis === 0 ? x >= a : axis === 1 ? x <= a : axis === 2 ? y >= a : y <= a;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n, xi = src[i * 2], yi = src[i * 2 + 1], xj = src[j * 2], yj = src[j * 2 + 1];
+    const ii = inside(xi, yi), ij = inside(xj, yj);
+    if (ii) { dst[m * 2] = xi; dst[m * 2 + 1] = yi; m++; }
+    if (ii !== ij) { const c = axis < 2 ? xi : yi, d = axis < 2 ? xj : yj, t = (a - c) / (d - c); dst[m * 2] = xi + (xj - xi) * t; dst[m * 2 + 1] = yi + (yj - yi) * t; m++; }
+  }
+  return m;
+}
 function quad(dst, W, H, hw, hh, zoom, k2, x0, y0, z0, x1, y1, z1, e1, e0) {
-  // polygon (v0, v1, e1, e0) clipped against z >= NEAR in camera space, then fan triangulated
+  // polygon (v0, v1, e1, e0); clip against z >= NEAR in camera space, project, then clip against the screen rectangle
+  // with screen-space interpolation (0x60d90/0x8bb50) and fan triangulate.
   _P[0] = x0; _P[1] = y0; _P[2] = z0; _P[3] = x1; _P[4] = y1; _P[5] = z1; _P[6] = e1[0]; _P[7] = e1[1]; _P[8] = e1[2]; _P[9] = e0[0]; _P[10] = e0[1]; _P[11] = e0[2];
   let n = 0;
   for (let i = 0; i < 4; i++) {
@@ -264,12 +277,13 @@ function quad(dst, W, H, hw, hh, zoom, k2, x0, y0, z0, x1, y1, z1, e1, e0) {
     if (ain !== bin) { const s = (NEAR - az) / (bz - az); _Q[n * 3] = _P[i * 3] + (_P[j * 3] - _P[i * 3]) * s; _Q[n * 3 + 1] = _P[i * 3 + 1] + (_P[j * 3 + 1] - _P[i * 3 + 1]) * s; _Q[n * 3 + 2] = NEAR; n++; }
   }
   if (n < 3) return;
-  // the original clamps every projected vertex to the clip rectangle [1, W-1.4] x [1, H-1.4] (0x28847) instead of clipping edges
-  for (let i = 0; i < n; i++) {
-    const z = _Q[i * 3 + 2]; let x = hw + _Q[i * 3] * zoom / z, y = hh + _Q[i * 3 + 1] * zoom / z;
-    x = x > W - 1.4 ? W - 1.4 : x < 1 ? 1 : x; y = y > H - 1.4 ? H - 1.4 : y < 1 ? 1 : y; _Q[i * 3] = x; _Q[i * 3 + 1] = y;
-  }
-  for (let i = 1; i + 1 < n; i++) triDelta16(dst, W, H, k2, _Q[0], _Q[1], _Q[i * 3], _Q[i * 3 + 1], _Q[i * 3 + 3], _Q[i * 3 + 4]);
+  let m = 0;
+  for (let i = 0; i < n; i++) { const z = _Q[i * 3 + 2], iz = z !== 0 ? 1 / z : 0; _S0[m * 2] = hw + _Q[i * 3] * zoom * iz; _S0[m * 2 + 1] = hh + _Q[i * 3 + 1] * zoom * iz; m++; }
+  if ((m = clipHalf(_S0, m, 0, 1, _S1)) < 3) return;
+  if ((m = clipHalf(_S1, m, 1, W - 1.4, _S0)) < 3) return;
+  if ((m = clipHalf(_S0, m, 2, 1, _S1)) < 3) return;
+  if ((m = clipHalf(_S1, m, 3, H - 1.4, _S0)) < 3) return;
+  for (let i = 1; i + 1 < m; i++) triDelta16(dst, W, H, k2, _S0[0], _S0[1], _S0[i * 2], _S0[i * 2 + 1], _S0[i * 2 + 2], _S0[i * 2 + 3]);
 }
 
 // ------------------------------------------------------------------------------------------------ effect `scene`
