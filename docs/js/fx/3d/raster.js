@@ -27,6 +27,7 @@ function order(ax, ay, au, av, bx, by, bu, bv, cx, cy, cu, cv) {
   if (Y[0] > Y[1]) { t = X[0]; X[0] = X[1]; X[1] = t; t = Y[0]; Y[0] = Y[1]; Y[1] = t; t = U[0]; U[0] = U[1]; U[1] = t; t = V[0]; V[0] = V[1]; V[1] = t; }
 }
 
+const clamp01 = (t) => (t < 0 ? 0 : t > 1 ? 1 : t); // keep an edge parameter inside its segment
 /** generic scanline walker: calls span(y, xl, ul, vl, xr, ur, vr) with xl<=xr for every covered row */
 function walk(H, span) {
   const y0 = Y[0], y2 = Y[2];
@@ -36,12 +37,12 @@ function walk(H, span) {
   const hl = y2 - y0;
   for (let y = ys; y <= ye; y++) {
     if (y < y0 - 0.0625) continue;
-    const tl = (y - y0) / hl;                             // long edge 0 -> 2
+    const tl = clamp01((y - y0) / hl);                   // long edge 0 -> 2
     const xl = X[0] + (X[2] - X[0]) * tl, ul = U[0] + (U[2] - U[0]) * tl, vl = V[0] + (V[2] - V[0]) * tl;
     let xr, ur, vr;
     const dtop = Y[1] - y0;
-    if (y < Y[1] && dtop > EDGE_EPS) { const ts = (y - y0) / dtop; xr = X[0] + (X[1] - X[0]) * ts; ur = U[0] + (U[1] - U[0]) * ts; vr = V[0] + (V[1] - V[0]) * ts; }
-    else { const d = y2 - Y[1]; const ts = d > 1e-9 ? (y - Y[1]) / d : 0; xr = X[1] + (X[2] - X[1]) * ts; ur = U[1] + (U[2] - U[1]) * ts; vr = V[1] + (V[2] - V[1]) * ts; }
+    if (y < Y[1] && dtop > EDGE_EPS) { const ts = clamp01((y - y0) / dtop); xr = X[0] + (X[1] - X[0]) * ts; ur = U[0] + (U[1] - U[0]) * ts; vr = V[0] + (V[1] - V[0]) * ts; }
+    else { const d = y2 - Y[1]; const ts = clamp01(d > 1e-9 ? (y - Y[1]) / d : 0); xr = X[1] + (X[2] - X[1]) * ts; ur = U[1] + (U[2] - U[1]) * ts; vr = V[1] + (V[2] - V[1]) * ts; }
     if (xl <= xr) span(y, xl, ul, vl, xr, ur, vr); else span(y, xr, ur, vr, xl, ul, vl);
   }
 }

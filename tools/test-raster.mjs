@@ -29,4 +29,10 @@ assert.ok(b.some((v) => v !== 0), 'x-major walker must draw a near-horizontal tr
 const d2 = new Uint32Array(320 * 200);
 triTex32(d2, 320, 200, tex, 255, 150.27, 98.67, 0, 0, 150.10, 92.045, 0, 0, 156.84, 92.047, 0, 0);
 for (let y = 0; y < 200; y++) for (let x = 0; x < 140; x++) assert.strictEqual(d2[y * 320 + x], 0, `spill at ${x},${y}`);
+
+// shallow top edge (0.0225 < dy < 1) with a long top edge: y0 < first scanline makes ts negative
+// and extrapolates xr far left; must stay inside the triangle's x-range.
+const d3 = new Uint32Array(320 * 200);
+triTex32(d3, 320, 200, tex, 255, 150, 100.05, 0, 0, 250, 100.1, 0, 0, 150, 110, 0, 0);
+for (let y = 0; y < 200; y++) for (let x = 0; x < 145; x++) assert.strictEqual(d3[y * 320 + x], 0, `shallow spill at ${x},${y}`);
 console.log('raster self-check OK');
