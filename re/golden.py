@@ -75,6 +75,6 @@ if __name__=='__main__':
     def stop_at_end():
         if t[0]>=t1: mu.emu_stop()
     at(0x364,stop_at_end)
-    try: mu.emu_start(B+0x7318,0,count=4000000000)
+    try: mu.emu_start(B+0x7318,0,count=int(__import__("os").environ.get("COUNT","4000000000")))
     except Exception as e: print('ERR',e,hex(ireg('EIP')))
     print('frames captured',len(captured),'last t',t[0])
