@@ -7,7 +7,7 @@ import { evalKeys } from './3d/anim.js';
 import { hpbToMatrix } from './3d/math3d.js';
 import { triTex32, triTex8, triDelta16 } from './3d/raster.js';
 
-const NEAR = 1.0; // near plane in camera space (original clips against z <= [0x11a100..]: tiny)
+const NEAR = 0.5; // near plane in camera space (0x10d8ac, set at 0x4cce)
 const IDENT = () => { const m = new Float64Array(16); m[0] = m[5] = m[10] = m[15] = 1; return m; };
 
 /** A named object of a scene. `world` = column-major 4x4 (object -> world) valid after Scene3D.evaluate(). */
@@ -248,6 +248,7 @@ function beams(buf, scene, o, rn, L, W, H, hw, hh, zoom) {
       if (nx * cx[a] + ny * cy[a] + nz * cz[a] < 0) continue;
     }
     ex(a, _ea); ex(b, _eb); ex(c, _ec);
+    triDelta16(dst, W, H, 7, rn.sx[a], rn.sy[a], rn.sx[b], rn.sy[b], rn.sx[c], rn.sy[c]); // the object triangle itself (weight 7 with beams on)
     quad(dst, W, H, hw, hh, zoom, BEAMK, cx[a], cy[a], cz[a], cx[b], cy[b], cz[b], _eb, _ea);
     quad(dst, W, H, hw, hh, zoom, BEAMK, cx[a], cy[a], cz[a], cx[c], cy[c], cz[c], _ec, _ea);
     quad(dst, W, H, hw, hh, zoom, BEAMK, cx[b], cy[b], cz[b], cx[c], cy[c], cz[c], _ec, _eb);
