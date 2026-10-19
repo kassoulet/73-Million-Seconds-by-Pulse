@@ -92,9 +92,9 @@ const _dc = new Float64Array(6);
  *  coord >= 255 -> coord - 255 (0xb8ef8 = -255.0); and when all three v are equal, one v is
  *  decremented by 1 (0xb8f10/14/18 = -1.0) so the texture has a non-zero gradient. */
 export function degen(u0, v0, u1, v1, u2, v2) {
-  if (u0 >= 255) u0 -= 255; if (v0 >= 255) v0 -= 255;
-  if (u1 >= 255) u1 -= 255; if (v1 >= 255) v1 -= 255;
-  if (u2 >= 255) u2 -= 255; if (v2 >= 255) v2 -= 255;
+  if (u0 > 255) u0 -= 255; if (v0 > 255) v0 -= 255;
+  if (u1 > 255) u1 -= 255; if (v1 > 255) v1 -= 255;
+  if (u2 > 255) u2 -= 255; if (v2 > 255) v2 -= 255;
   if (v0 === v1 && v1 === v2) {
     if (u0 === u1) v2 -= 1;
     if (u0 === u2) v1 -= 1;
