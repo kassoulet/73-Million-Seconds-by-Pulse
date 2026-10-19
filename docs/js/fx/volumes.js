@@ -317,7 +317,7 @@ function rampPalette(c) {
   }
   return pal;
 }
-const _pp = { x: 0, y: 0, z: 0, ok: true };
+const _pp = { x: 0, y: 0, z: 0, ok: true }, _sp = new Float64Array(3);
 FX.register('volumesprites', {
   // params: scene object volume.  One sprite for every voxel of the volume with value*35 >= 1, drawn through the camera of the scene.
   init(params, ev, ctx) {
@@ -346,6 +346,6 @@ FX.register('volumesprites', {
 // camera: scene3d's projectPoint (object-space point -> screen + view depth). ponytail: crude fallback when scene3d.js is absent
 // (fixed camera looking down +z at 400 units), only good enough to see the sprites.
 function projectVolumePoint(ctx, st, P, out) {
-  if (S3D && S3D.projectPoint) { out.ok = true; const r = S3D.projectPoint(ctx, S3D.getScene ? S3D.getScene(ctx, st.scene) : null, P, out, st.obj); return r === undefined ? out.ok : r; }
+  if (S3D && S3D.projectPoint) { const r = S3D.projectPoint(ctx, S3D.getScene(ctx, st.scene), P, _sp); out.x = _sp[0]; out.y = _sp[1]; out.z = _sp[2]; out.ok = r; return r; }   // projectPoint fills an array [x, y, z]
   out.z = 400 + P[2]; out.x = 160 + P[0] * 300 / out.z; out.y = 100 - P[1] * 300 / out.z; out.ok = out.z > 1; return out.ok;
 }
