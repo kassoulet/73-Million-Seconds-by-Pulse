@@ -323,10 +323,11 @@ FX.register('volumesprites', {
   init(params, ev, ctx) {
     const p = words(params), obj = sceneObject(ctx, p[0], p[1]), vol = findVolume(ctx, p[2], 'VolumeSprites');
     const bb = objBBox(obj).map(f32), step = [0, 1, 2].map((k) => f32((bb[3 + k] - bb[k]) / 15));
-    // texture + palette of the first material of the scene (0x10d91c = material array): 256x256 8 bit indices, ramp of the material colour
-    let colour = [0.2, 0.35, 0.2], texName = 'pink.tga';
-    try { const m = expScene(ctx, p[0]).materials[0]; colour = m.ambient; texName = m.texture.replace(/\.png$/, '.tga'); } catch (e) { /* defaults = box2.exp */ }
-    const tex = ctx.assets.idx(texName).data;
+    // the sprites are star-like glows: the round flare1 texture (8 bit, stride 256) through a neutral grey ramp.
+    // ASSUMPTION: the original's choice (texture/colour of "material 0") was not traced; pink.png + the material colour gave green marble blobs.
+    const fim = ctx.assets.image('flare1.unr'), tex = new Uint8Array(65536);
+    for (let y = 0; y < fim.h; y++) for (let x = 0; x < fim.w; x++) tex[y * 256 + x] = fim.rgb[y * fim.w + x] & 0xff;
+    const colour = [0.35, 0.35, 0.35];
     return { obj, vol, min: bb.slice(0, 3), step, tex, pal: rampPalette(colour), scene: p[0], pos: new Float32Array(3) };
   },
   run(st, ev, ctx) {
