@@ -323,11 +323,13 @@ FX.register('volumesprites', {
   init(params, ev, ctx) {
     const p = words(params), obj = sceneObject(ctx, p[0], p[1]), vol = findVolume(ctx, p[2], 'VolumeSprites');
     const bb = objBBox(obj).map(f32), step = [0, 1, 2].map((k) => f32((bb[3 + k] - bb[k]) / 15));
-    // the sprites are star-like glows: the round flare1 texture (8 bit, stride 256) through a neutral grey ramp.
-    // ASSUMPTION: the original's choice (texture/colour of "material 0") was not traced; pink.png + the material colour gave green marble blobs.
-    const fim = ctx.assets.image('flare1.unr'), tex = new Uint8Array(65536);
+    // The material is NOT one of the scene: the run function (0x190cb) uses the global "current material" [0x10d91c], which the
+    // flare effects leave pointing at the last light material: "f2.omni01" in the original at t=237 s (read with re/golden.py, hook at 0x192f8).
+    // Its texture is flare2 (128x128 stored with a stride of 256, like flares.js) and its colour (0.38, 0.553, 0.494).
+    // The blitter takes the texture size from [mat+0x54]+0x18/0x1c = 128.0, so one sprite maps 128 texels.
+    const fim = ctx.assets.image('flare2.unr'), tex = new Uint8Array(65536);
     for (let y = 0; y < fim.h; y++) for (let x = 0; x < fim.w; x++) tex[y * 256 + x] = fim.rgb[y * fim.w + x] & 0xff;
-    const colour = [0.35, 0.35, 0.35];
+    const colour = [0.38, 0.553, 0.494];
     return { obj, vol, min: bb.slice(0, 3), step, tex, pal: rampPalette(colour), scene: p[0], pos: new Float32Array(3) };
   },
   run(st, ev, ctx) {
@@ -340,7 +342,7 @@ FX.register('volumesprites', {
       if (!projectVolumePoint(ctx, st, P, _pp) || !_pp.ok) continue;      // behind the near plane (flag 0x10)
       const size = f32(a * (150 / _pp.z));                                 // 150/z * (value*35)
       if (size < 3.5) continue;
-      blitSprite(out.data, W, H, st.tex, st.pal, _pp.x, _pp.y, size);
+      blitSprite(out.data, W, H, st.tex, st.pal, _pp.x, _pp.y, size, 128, 128);
     }
   },
 });

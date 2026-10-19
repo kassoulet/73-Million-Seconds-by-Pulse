@@ -5,8 +5,12 @@ transform set-up still run). <code>volumesprites cudrkgh {} {SCREEN} {kubes box0
 <code>metaballs ... test2.mbs</code> fills every frame; for each voxel with <code>35&middot;value &ge; 1</code> (clamped to 120) it takes the voxel's position inside the bounding
 box of <code>box01</code>, transforms it with the camera of the scene (last object matrix &times; camera, kept in globals at <code>0x1286d0</code>) and
 projects it with the usual <code>x&middot;f/z</code>. The sprite is a square of <code>35&middot;value&middot;150/z</code> pixels (skipped when smaller than 3.5), so
-dense parts of the blobs give big, near ones even bigger. The texture is the first material of the scene (<code>pink.png</code>, 256&times;256, 8 bit)
-coloured through a 256-entry ramp <code>pal[i] = i/160 &middot; colour &middot; 256</code> (<code>0x21b9b</code>) whose bytes are kept even.</p>
+dense parts of the blobs give big, near ones even bigger. The texture and palette do <em>not</em> come from the scene: the run function reads the global &ldquo;current material&rdquo; <code>[0x10d91c]</code>
+(texture struct at <code>+0x54</code>: data at <code>+0x14</code>, width/height as floats at <code>+0x18/+0x1c</code>; palette at <code>+0x68</code>), which the flare effects leave pointing
+at the last light material. Measured in the original at t&nbsp;=&nbsp;237&nbsp;s (hook on the blitter call at <code>0x192f8</code>): the material is <code>f2.omni01</code>,
+the texture is <code>flare2</code> (128&times;128 stored with a stride of 256, exactly what <em>flares</em> uses; the sprite blitter takes 128.0 as the texture size so one sprite maps these 128 texels)
+and the colour is (0.38, 0.553, 0.494), a teal tint, hence star-like sprites. The palette is a 256-entry ramp
+<code>pal[i] = i/160 &middot; colour &middot; 256</code> (<code>0x21b9b</code>) whose bytes are kept even (<code>pal[160] = 0x608e7e</code> in the original).</p>
 <p>The blitter <code>0x58f04</code> is hand-written asm with self-modifying code: the texture and palette addresses and the per-pixel
 texture steps are patched into the instruction stream. Edges are converted to 16.16 fixed point with the classic &ldquo;add 1.5&middot;2<sup>36</sup>&rdquo; trick
 (the low mantissa dword is then the rounded integer), clipped, and u/v are walked as 8.16 values whose integer byte lives in <code>cl</code>/<code>ch</code>
@@ -55,6 +59,6 @@ fb[p] = ((c - (c &gt;&gt;&gt; 8)) | sum) &gt;&gt;&gt; 0;
 <dt>script</dt><dd><code>volume3D nazwa3 {} {} {OurVolume}</code>, <code>clearvolume</code>, <code>metaballs ... test2.mbs</code>, <code>volumesprites cudrkgh {} {SCREEN} {kubes box01 OurVolume}</code></dd>
 <dt>time</dt><dd>order 33&ndash;35, about 245&ndash;262 s</dd>
 <dt>code</dt><dd>init <code>0x18eb3</code>, run <code>0x190cb</code>, projection <code>0x588d8</code>, blitter <code>0x58f04</code>, material ramp <code>0x21b9b</code></dd>
-<dt>port</dt><dd>blitter bit-identical to the original on 8 sprites (clipped, tiny, huge; 0 differing pixels); palette ramp identical; projection relies on scene3d.js</dd>
+<dt>port</dt><dd>blitter bit-identical to the original on 8 sprites (clipped, tiny, huge; 0 differing pixels); palette ramp identical; texture/colour taken from the original's current material (see above); projection relies on scene3d.js</dd>
 </dl>
 </section>
