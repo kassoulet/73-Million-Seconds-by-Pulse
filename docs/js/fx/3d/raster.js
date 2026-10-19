@@ -37,12 +37,13 @@ function walk(H, span) {
   const hl = y2 - y0;
   for (let y = ys; y <= ye; y++) {
     if (y < y0 - 0.0625) continue;
-    const tl = clamp01((y - y0) / hl);                   // long edge 0 -> 2
+    const yy = y + 0.0625;                               // q() samples rows at y + 1/16: evaluate the edges there too, or thin triangles leave 1-row cracks
+    const tl = clamp01((yy - y0) / hl);                   // long edge 0 -> 2
     const xl = X[0] + (X[2] - X[0]) * tl, ul = U[0] + (U[2] - U[0]) * tl, vl = V[0] + (V[2] - V[0]) * tl;
     let xr, ur, vr;
     const dtop = Y[1] - y0;
-    if (y < Y[1] && dtop > EDGE_EPS) { const ts = clamp01((y - y0) / dtop); xr = X[0] + (X[1] - X[0]) * ts; ur = U[0] + (U[1] - U[0]) * ts; vr = V[0] + (V[1] - V[0]) * ts; }
-    else { const d = y2 - Y[1]; const ts = clamp01(d > 1e-9 ? (y - Y[1]) / d : 0); xr = X[1] + (X[2] - X[1]) * ts; ur = U[1] + (U[2] - U[1]) * ts; vr = V[1] + (V[2] - V[1]) * ts; }
+    if (yy < Y[1] && dtop > EDGE_EPS) { const ts = clamp01((yy - y0) / dtop); xr = X[0] + (X[1] - X[0]) * ts; ur = U[0] + (U[1] - U[0]) * ts; vr = V[0] + (V[1] - V[0]) * ts; }
+    else { const d = y2 - Y[1]; const ts = clamp01(d > 1e-9 ? (yy - Y[1]) / d : 0); xr = X[1] + (X[2] - X[1]) * ts; ur = U[1] + (U[2] - U[1]) * ts; vr = V[1] + (V[2] - V[1]) * ts; }
     if (xl <= xr) span(y, xl, ul, vl, xr, ur, vr); else span(y, xr, ur, vr, xl, ul, vl);
   }
 }
