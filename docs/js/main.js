@@ -131,7 +131,38 @@ canvas.addEventListener('click', () => (started ? toggle() : play()));
 canvas.addEventListener('dblclick', fullscreen);
 $('seek').addEventListener('change', (e) => seekTo(+e.target.value / 10));
 $('vol').addEventListener('input', (e) => { if (player) player.setVol(+e.target.value); });
-$('scan').addEventListener('change', (e) => stage.classList.toggle('scan', e.target.checked));
+// CRT: one dark band per source row, period = integer device px (k per row), canvas snapped to k*SRC_ROWS device px.
+const SRC_ROWS = 200, scanEl = $('scan'), scanLines = stage.querySelector('.scanlines');
+let crtOn = false; try { crtOn = localStorage.getItem('crt') === '1'; } catch (e) { /* storage blocked */ }
+function crtLayout() {
+  const dpr = window.devicePixelRatio || 1;
+  const aw = Math.floor(stage.offsetWidth * dpr), ah = Math.floor(Math.min(stage.offsetHeight, innerHeight) * dpr);
+  const k = Math.floor(Math.min(ah / SRC_ROWS, aw / (SRC_ROWS * 1.6)));
+  const ok = k >= 2;
+  scanEl.disabled = !ok; scanEl.parentElement.classList.toggle('off', !ok);
+  scanEl.parentElement.title = ok ? 'CRT scanlines (C)' : 'CRT needs at least 2 screen pixels per source row: window too small';
+  scanEl.checked = crtOn && ok;
+  const on = crtOn && ok;
+  stage.classList.toggle('crt', on);
+  const box = [canvas.style, scanLines.style];
+  if (!on) { for (const st of box) st.cssText = ''; return; }
+  const h = k * SRC_ROWS, w = k * SRC_ROWS * 8 / 5, r = stage.getBoundingClientRect(), sx = r.left * dpr, sy = r.top * dpr;
+  // origin on a whole device pixel (stage itself may sit on a fractional one)
+  const l = Math.round(sx + (aw - w) / 2) - sx, t = Math.round(sy + (ah - h) / 2) - sy;
+  for (const st of box) { st.left = l / dpr + 'px'; st.top = t / dpr + 'px'; }
+  canvas.style.width = w / dpr + 'px'; canvas.style.height = h / dpr + 'px';
+  // overlay laid out in device px (integer tile k) then scaled back, so a fractional dpr cannot round the period
+  Object.assign(scanLines.style, { width: w + 'px', height: h + 'px', transformOrigin: '0 0', transform: `scale(${1 / dpr})` });
+  scanLines.style.setProperty('--crt-p', k + 'px');
+}
+function setCrt(v) { crtOn = v; try { localStorage.setItem('crt', v ? '1' : '0'); } catch (e) { /* ignore */ } crtLayout(); }
+scanEl.addEventListener('change', () => setCrt(scanEl.checked));
+addEventListener('resize', crtLayout);
+addEventListener('scroll', () => { if (crtOn) crtLayout(); }, { passive: true });
+document.addEventListener('fullscreenchange', crtLayout);
+new ResizeObserver(crtLayout).observe(stage);
+(function watchDpr() { const m = matchMedia(`(resolution: ${devicePixelRatio}dppx)`); m.addEventListener('change', () => { crtLayout(); watchDpr(); }, { once: true }); })();
+crtLayout();
 $('hudb').addEventListener('change', (e) => { showHud = e.target.checked; $('hud').hidden = !showHud; });
 addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT' && e.target.type !== 'range' && e.target.type !== 'checkbox') return;
@@ -140,6 +171,7 @@ addEventListener('keydown', (e) => {
   else if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
   else if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
   else if (e.key === 'f' || e.key === 'F') fullscreen();
+  else if ((e.key === 'c' || e.key === 'C') && !scanEl.disabled) setCrt(!crtOn);
   else if (e.key === 'l') seekTo(curT() + 5);
   else if (e.key === 'j') seekTo(curT() - 5);
 });

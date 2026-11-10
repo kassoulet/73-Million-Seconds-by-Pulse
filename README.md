@@ -52,6 +52,10 @@ tools/                      render.mjs, mkraw.py, ppm2png.py, cmp.py, mkmanifest
 ENGINE.md                   the port's engine contract / contributor guide
 ```
 
+## CRT option
+
+The `CRT` checkbox (key `C`, remembered in `localStorage`, default off) draws one dark scanline band per source row (200) plus a faint vignette. To avoid moire the canvas is snapped to `k*200` device pixels (`k = floor(available device px / 200)`, 16:10 as the normal view) and the band period is exactly `k` device pixels. It is unavailable (checkbox greyed) when `k < 2`. Display only: pixel data is untouched.
+
 ## Running locally
 
 The site is static; serve `docs/` and open it:
