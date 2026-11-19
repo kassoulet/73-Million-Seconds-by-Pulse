@@ -99,3 +99,11 @@ the documentation format used in `docs/notes/`.
 - Music: `tour2.xm`, played with [chiptune3](https://github.com/DrSnuggles/chiptune)
   / libopenmpt.
 - This JavaScript port and the reverse-engineering notes: non-commercial, for study.
+
+## Write-ups on the site
+
+The write-ups are published as HTML next to the player (`docs/writeups/`, generated from `WRITEUP-*.md` and the referenced `figures/`; needs pandoc). After editing a write-up, regenerate with:
+
+```
+../../tools/mkwriteups.sh . docs    # shared script: demoports/tools/mkwriteups.sh REPO_DIR PUBLISH_SUBDIR
+```

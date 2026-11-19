@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>73 million seconds (pULSe, 1998) - asm snippets worth
+reading</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+  :root{--bg:#fff;--fg:#1d1d22;--mut:#666;--ac:#c4155a;--code:#f3f3f6;--bd:#d8d8e0}
+  @media (prefers-color-scheme:dark){:root{--bg:#0b0b10;--fg:#d8d8e0;--mut:#9a9aa8;--ac:#ff6a9a;--code:#17171f;--bd:#33333f}}
+  *{box-sizing:border-box}
+  body{margin:0 auto;max-width:62rem;padding:0 16px;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+  #wunav{display:flex;gap:16px;flex-wrap:wrap;padding-top:12px;padding-bottom:8px;border-bottom:1px solid var(--bd);font-size:14px}
+  a{color:var(--ac)}
+  h1,h2,h3,h4{line-height:1.25;margin-top:1.8em}
+  img{max-width:100%;height:auto;image-rendering:auto}
+  pre{background:var(--code);border:1px solid var(--bd);border-radius:4px;padding:10px 12px;overflow-x:auto;font-size:13px;line-height:1.4}
+  code{background:var(--code);padding:1px 4px;border-radius:3px;font-size:.92em;overflow-wrap:anywhere}
+  pre code{background:none;padding:0;overflow-wrap:normal}
+  table{border-collapse:collapse;display:block;overflow-x:auto;max-width:100%}
+  td,th{border:1px solid var(--bd);padding:4px 8px}
+  blockquote{border-left:3px solid var(--bd);margin-left:0;padding-left:14px;color:var(--mut)}
+  #TOC{font-size:14px}#TOC ul{padding-left:1.2em}
+  #TOC>ul{padding-left:0;list-style:none}
+  details#toc-box{margin:12px 0}
+  </style>
+</head>
+<body>
+<nav id="wunav"><a href="../index.html">&larr; the demo</a> <a href="WRITEUP-asm.html">asm</a> <a href="WRITEUP-effects.html">effects</a> <a href="https://github.com/kassoulet/73-Million-Seconds-by-Pulse">README on GitHub</a></nav>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a
+href="#73-million-seconds-pulse-1998---asm-snippets-worth-reading"
+id="toc-73-million-seconds-pulse-1998---asm-snippets-worth-reading">73
+million seconds (pULSe, 1998) - asm snippets worth reading</a>
+<ul>
+<li><a href="#1-self-modifying-inner-loops-everywhere"
+id="toc-1-self-modifying-inner-loops-everywhere">1. Self-modifying inner
+loops, everywhere</a></li>
+<li><a
+href="#2-texture-coordinates-that-live-in-clch-or-blbh-with-adc-carrying-the-fraction"
+id="toc-2-texture-coordinates-that-live-in-clch-or-blbh-with-adc-carrying-the-fraction">2.
+Texture coordinates that live in <code>cl</code>/<code>ch</code> or
+<code>bl</code>/<code>bh</code>, with <code>adc</code> carrying the
+fraction</a></li>
+<li><a href="#3-parasite-a-bresenham-line-as-a-texture-walker"
+id="toc-3-parasite-a-bresenham-line-as-a-texture-walker">3. Parasite: a
+Bresenham line as a texture walker</a></li>
+<li><a href="#4-saturating-adds-without-branches-or-mmx-add--sbb--or"
+id="toc-4-saturating-adds-without-branches-or-mmx-add--sbb--or">4.
+Saturating adds without branches or MMX:
+<code>add / sbb / or</code></a></li>
+<li><a
+href="#5-radial-blur-bilinear-interpolation-without-a-multiplication"
+id="toc-5-radial-blur-bilinear-interpolation-without-a-multiplication">5.
+Radial blur: bilinear interpolation without a multiplication</a></li>
+<li><a href="#6-the-float---fixed-trick-add-15--236"
+id="toc-6-the-float---fixed-trick-add-15--236">6. The float -&gt; fixed
+trick: add 1.5 * 2^36</a></li>
+<li><a
+href="#7-two-texture-coordinates-in-one-32-bit-register-echo4echo6-rasteriser"
+id="toc-7-two-texture-coordinates-in-one-32-bit-register-echo4echo6-rasteriser">7.
+Two texture coordinates in one 32 bit register (echo4/echo6
+rasteriser)</a></li>
+<li><a href="#8-clip-codes-with-add--adc-and-a-jump-table"
+id="toc-8-clip-codes-with-add--adc-and-a-jump-table">8. Clip codes with
+<code>add</code> / <code>adc</code> and a jump table</a></li>
+<li><a href="#9-shadow-volumes-in-two-memory-operations-per-span"
+id="toc-9-shadow-volumes-in-two-memory-operations-per-span">9. Shadow
+volumes in two memory operations per span</a></li>
+<li><a
+href="#10-fast-1sqrt-from-the-float-bits-marching-cubes-normals-0x57d63"
+id="toc-10-fast-1sqrt-from-the-float-bits-marching-cubes-normals-0x57d63">10.
+Fast 1/sqrt from the float bits (marching cubes normals,
+0x57d63)</a></li>
+<li><a href="#11-smaller-things" id="toc-11-smaller-things">11. Smaller
+things</a></li>
+<li><a href="#what-is-not-here" id="toc-what-is-not-here">What is not
+here</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="73-million-seconds-pulse-1998---asm-snippets-worth-reading">73
+million seconds (pULSe, 1998) - asm snippets worth reading</h1>
+<p>All addresses are file addresses of the unpacked, relocated image
+<code>re/rel0.bin</code> (base 0, so address == file offset;
+<code>73MS.EXE</code> is Watcom C/C++32 under DOS/4GW, UPX-packed,
+unpacked by the project's Unicorn tooling). Every listing below was
+re-generated with <code>python3 -I re/ds.py ADDR N</code> (capstone) and
+compared with the listings in <code>docs/notes/*.html</code>; they
+match. Watcom register convention: arguments in EAX, EDX, EBX, ECX, then
+the stack.</p>
+<p>Two things to know when reading the dumps:</p>
+<ul>
+<li><strong>Patched operands are placeholders in the file
+image.</strong> Where the code is self-modifying, the on-disk immediates
+(<code>0x270f</code>, <code>0x4d2</code>, <code>0xbc614e</code>,
+<code>0x1869f</code>, <code>0x98967f</code>...) are filler values of the
+assembler source; the real value is written at run time (the writers are
+shown).</li>
+<li>The code is the "hand-written core" of a C engine: the demo is 1998
+and targets a Pentium MMX class machine, but only the blend/blur
+primitives use MMX (and they test CPUID first, with an integer fallback
+at 0xb36fc for blend). Everything else is plain x86 + x87.</li>
+</ul>
+<p>The recurring themes: self-modifying loops to free registers,
+carry-chain tricks (<code>adc</code>, <code>sbb</code>), table lookups
+instead of multiplies, and the "add 1.5*2^36" float-to-fixed trick.</p>
+<hr />
+<h2 id="1-self-modifying-inner-loops-everywhere">1. Self-modifying inner
+loops, everywhere</h2>
+<p>The same pattern appears in at least six unrelated routines (fade,
+echo, matrix, playrgbani, parasite, flare/sprite blitters, reebok): a
+short set-up routine stores per-call constants into the operand fields
+of the loop's own instructions, so the loop needs no register and no
+memory operand for them.</p>
+<p><strong>fade, the setup (0x51ee0)</strong> selects a row of the alpha
+table and pokes its address into three loads:</p>
+<pre><code>51ee0  shl ebx, 8
+51ee3  add eax, ebx             ; row a of the colour table
+51ee5  add edx, ebx             ; row a of the pixel table
+51ee7  mov dword ptr [0x51f4a], edx   ; patch: table base, byte 2
+51eed  mov dword ptr [0x51f5b], edx   ;                    byte 1
+51ef3  mov dword ptr [0x51f64], edx   ;                    byte 0</code></pre>
+<p>and the loop (0x51f48, one pixel per iteration, <code>ebp+esi</code>
+= source with <code>esi</code> counting up to 0, <code>edi+esi</code> =
+destination):</p>
+<pre><code>51f48  mov al, byte ptr [edx + 0x270f]   ; imm32 patched: pixel byte 2 -&gt; (v*(256-a))&gt;&gt;8
+51f4e  mov bl, byte ptr [ebp + esi + 1]
+51f52  shl eax, 0x10
+51f55  mov cl, byte ptr [ebp + esi]
+51f59  mov ah, byte ptr [ebx + 0x270f]   ; byte 1
+51f5f  add esi, 4
+51f62  mov al, byte ptr [ecx + 0x270f]   ; byte 0
+51f69  add eax, 0x121212                 ; imm32 patched: packed colour*a&gt;&gt;8, added to all 3 bytes at once
+51f6e  mov dl, byte ptr [ebp + esi + 2]   ; next pixel&#39;s byte 2 loaded early
+51f72  mov dword ptr [edi + esi - 4], eax
+51f76  test esi, esi
+51f78  mov eax, 0
+51f7d  jne 0x51f48</code></pre>
+<p>Why it is nice: a blend with a constant colour costs 3 loads + 3
+table lookups + <strong>one</strong> <code>add eax, imm</code> for the
+colour of all three channels, because the table already holds
+<code>v*(256-a)&gt;&gt;8</code> and the colour contribution
+<code>c*a&gt;&gt;8</code> per channel was packed once into the
+immediate. The three index registers, the table row and the colour are
+all free; the pixel loop is software-pipelined
+(<code>mov dl,[ebp+esi+2]</code> is the <em>next</em> iteration's
+load).</p>
+<p><strong>echo, the setup (0xb3640)</strong> patches
+<strong>six</strong> fields of the loop for a 320x200 effect:</p>
+<pre><code>b3640  mov dword ptr [0xb3633], esi    ; operand inside the loop
+b3646  mov dword ptr [0xb36e1], edi    ; displacement of the store at 0xb36df
+b364c  mov dword ptr [0xb36d9], ebx    ; displacement of the picture read at 0xb36d7
+b3652  mov dword ptr [0xb36e7], eax    ; displacement of the second store
+b3657  mov dword ptr [0xb36c1], edx    ; operand of the warp-table read
+b365d  mov dword ptr [0xb3637], ecx    ; time offset into the picture</code></pre>
+<p>The loop (0xb3693) then needs only two live registers,
+<code>edi</code> (pixel index) and <code>ebp</code> (counter):</p>
+<pre><code>b3693  mov esi, dword ptr [ebp*4 + 0xb2cb3]   ; x zoom table - it lives INSIDE the code segment
+b369a  xor ebx, ebx
+b369c  add esi, ecx                           ; + row base
+b369e  mov al, byte ptr [esi]
+b36a0  mov bl, byte ptr [esi + 0x141]         ; 2x2 box: p[321]
+b36a6  add eax, ebx
+b36a8  mov bl, byte ptr [esi + 0x140]         ; p[320]
+b36ae  add eax, ebx
+b36b0  mov bl, byte ptr [esi + 1]             ; p[1]
+b36b3  add eax, ebx
+b36b5  shr eax, 2
+b36b8  mov al, byte ptr [eax + 0xb28b3]       ; attenuation table, also copied into the code segment
+b36be  mov ebx, dword ptr [edi + edi + 1]     ; warp table entry (16 bit index into the 256x256 picture)
+b36c5  and ebx, 0xffff
+b36cb  add ebx, dword ptr [0xb3637]            ; + patched time offset
+b36d1  and ebx, 0xffff                        ; wrap inside the picture
+b36d7  add al, byte ptr [ebx + 1]             ; add the picture pixel ...
+b36dd  jb  0xb36f5                            ; ... saturate on carry
+b36df  mov byte ptr [edi + 1], al             ; write to the screen buffer
+b36e5  mov byte ptr [edi + 1], al             ; ... and to the echo buffer for the next frame
+b36eb  inc edi / dec ebp / jne 0xb3693</code></pre>
+<p>Zoom tables and attenuation table are copied into the code region
+itself by the routine at 0xb34e3 (the address <code>0xb2cb3</code> and
+<code>0xb28b3</code> are in the code area), turning the code segment
+into a constant pool next to the code that reads it. The two stores at
+b36df / b36e5 have different patched displacements: one write goes to
+the visible buffer, one to the feedback buffer (ping-pong).</p>
+<p><strong>Other patched loops</strong> use the exact same idea with a
+different payload: the flare/sprite blitters (section 2) patch the
+texture pointer, a table row and the u-step; parasite (section 3)
+patches the integer and fractional parts of its 16.16 step into an
+<code>adc</code> and an <code>add</code>; <code>matrix</code> (0x5276a)
+patches nine 256-byte table addresses <em>and</em> the
+<code>out - in</code> distance into a <code>mov [esi + imm32], dl</code>
+so the store needs no output pointer
+(<code>52826  mov [esi + 0x34083], dl</code>).</p>
+<h2
+id="2-texture-coordinates-that-live-in-clch-or-blbh-with-adc-carrying-the-fraction">2.
+Texture coordinates that live in <code>cl</code>/<code>ch</code> or
+<code>bl</code>/<code>bh</code>, with <code>adc</code> carrying the
+fraction</h2>
+<p>The sprite and rotozoom blitters keep 8.16 texture coordinates split
+across registers so that the integer part <strong>is</strong> the 8 bit
+coordinate and wraps at 256 for free.</p>
+<p>Flare / sprite blitter, inner loop (0x59968; <code>ch:cl</code> =
+texture row:column, <code>esi</code> = 16 bit fraction of u in the top
+half):</p>
+<pre><code>59968  mov al, byte ptr [ecx + 0x1869f]   ; texel = texture[ch*256 + cl]   (imm = texture base, patched at 0x5996a)
+5996e  add esi, 0xbc614e                  ; u fraction += du_frac&lt;&lt;16       (patched at 0x59970)
+59974  adc cl, 0xc                        ; u integer += du_int + carry     (patched at 0x59976)
+59977  mov bl, byte ptr [edi]             ; destination pixel
+59979  add bl, byte ptr [eax + 0x98967f]  ; += table[intensity*256 + texel]  (patched at 0x5997b)
+5997f  inc edi
+59980  sbb dl, dl                         ; carry -&gt; 0xff / 0x00
+59983  or  bl, dl                         ; saturate to 255
+59985  dec ebp
+59986  mov byte ptr [edi - 1], bl
+59989  jne 0x59968</code></pre>
+<p>Nine instructions plus the loop, no multiply, no shift, no mask, 8
+bit wrap-around of the texture for free, and the intensity of the
+particle is a <em>table row</em> so a fade-out costs nothing per
+pixel.</p>
+<p>The rotozoom (<code>reebok</code>, 0x59304) goes further: the 64 KB
+texture is copied to a 64 KB aligned block, so <code>ebx</code> itself
+is the texture address and <code>bl</code>/<code>bh</code> are u/v. Both
+coordinates advance with carry chains in the same loop:</p>
+<pre><code>59304  mov al, byte ptr [ebx]             ; texel at (v&lt;&lt;8|u)
+59306  mov dl, byte ptr [0xc897a]         ; integer part of du
+5930c  add esi, ecx                       ; u fraction += du fraction
+5930e  mov dh, byte ptr [0xc897e]         ; integer part of dv
+59314  adc bl, dl                         ; u integer += du_int + carry
+59316  mov al, byte ptr [eax + 0x117ddc]  ; brightness table of this layer
+5931c  mov cl, byte ptr [edi]
+5931e  add ebp, edx                       ; v fraction += dv fraction
+59320  adc bh, dh                         ; v integer += dv_int + carry
+59322  add al, cl                         ; add + saturate:
+59324  sbb cl, cl
+59327  or  cl, al</code></pre>
+<p>Two 16.16 DDA accumulators and a 256x256 wrapping texture addressed
+with zero address arithmetic. A curiosity the port had to reproduce:
+<code>ecx</code>/<code>edx</code> still carry the destination pixel and
+the integer step bytes in their low bytes, and they get added into the
+fraction accumulators too; the output is bit-exact only with this
+"bug".</p>
+<h2 id="3-parasite-a-bresenham-line-as-a-texture-walker">3. Parasite: a
+Bresenham line as a texture walker</h2>
+<p>The span filler of <code>parasite</code> (0x59224) is 7 instructions
+per pixel, with the fixed-point step of a <strong>per-band</strong>
+<code>255/width</code> patched into the loop:</p>
+<pre><code>591ea  sar eax, 0xb                  ; level = |s|*32  (&gt;&gt; 11 of the 16.16 value)
+59200  sar esi, 0x10                 ; integer part of the step
+59204  shl ebp, 0x10                 ; fraction of the step in the upper 16 bits
+59207  mov dword ptr [0x59226], esi  ; patch: operand of the adc
+59210  mov dword ptr [0x59232], ebp  ; patch: operand of the add
+...
+59224  adc ebx, 0x4d2                ; ebx += step_int + carry     (imm at 0x59226)
+5922a  mov ebp, dword ptr [edx + eax*4]   ; colour = table[level][texel]
+5922d  mov dword ptr [edi + ecx*4], ebp   ; store 0x00RRGGBB
+59230  add esi, 0xbc614e             ; fraction += step_frac       (imm at 0x59232)
+59236  mov al, byte ptr [ebx]        ; next texel
+59239  inc ecx
+5923a  jne 0x59224</code></pre>
+<p>The carry out of the fraction add (<code>add esi,...</code>) is
+consumed by the <em>next iteration's</em> <code>adc ebx</code>, so the
+texel pointer advances by <code>int</code> or <code>int+1</code> exactly
+like a Bresenham line. <code>ecx</code> counts from <code>-count</code>
+to 0 and doubles as the index of the destination, so loop control costs
+one <code>inc</code> + <code>jne</code>. The 256x256 colour table is
+indexed by <code>level*1024 + texel*4</code> (<code>edx</code> already
+points at the row) and was built at start-up: palette entry times
+<code>cos^3((1-L/256)*pi/2)/64</code>.</p>
+<h2 id="4-saturating-adds-without-branches-or-mmx-add--sbb--or">4.
+Saturating adds without branches or MMX:
+<code>add / sbb / or</code></h2>
+<p>Everywhere an 8 bit pixel is added to the screen the code uses the
+same three instructions (seen in echo, flares, radialblur, reebok,
+echo4's smear):</p>
+<pre><code>35e65  mov al, byte ptr [edi]               ; echo4 glow smear, 0x35e60 (row pass)
+35e67  mov cl, byte ptr [ebx + 0xc472c]     ; T[prev] = round(prev * 0.65)
+35e6d  add al, cl
+35e6f  inc edi
+35e70  sbb cl, cl                           ; CF -&gt; 0xff or 0
+35e72  or  al, cl                           ; saturate
+35e75  mov bl, al                           ; new pixel becomes &#39;previous&#39; for its right neighbour
+35e77  mov byte ptr [edi - 1], al</code></pre>
+<p><code>sbb cl,cl</code> turns the carry flag into a mask without a
+branch, so the loop has no mispredictable jump on a Pentium. In this
+smear the dependency on the previous output pixel is a <strong>table
+index</strong> (<code>bl</code> is <code>[ebx+table]</code>'s index),
+i.e. the recursive filter <code>y[i] = x[i] + 0.65*y[i-1]</code> is one
+load, one add, one saturation.</p>
+<p><strong>32 bit version, SWAR (volumesprites, 0x5910a).</strong> Three
+channels are saturated at once with plain integer instructions. The
+frame-buffer pixel is masked to even bytes, the palette entries have
+even bytes by construction (the ramp is built with kept even bytes), so
+a per-channel overflow appears as a carry in bits 8, 16, 24 of the sum,
+and <code>carry - (carry&gt;&gt;8)</code> expands each carry into a 0xff
+mask:</p>
+<pre><code>5910a  mov ebx, dword ptr [edi]            ; frame buffer pixel
+5910c  mov al, byte ptr [ecx + 0x1869f]    ; texel
+59112  and ebx, 0xfefefefe                 ; drop the low bit of every channel
+59119  mov eax, dword ptr [eax*4 + 0x1869f]; palette entry
+59120  add esi, 0xbc614e                   ; u fraction (patched)
+59126  adc cl, 0xc                         ; u integer (patched)
+59129  add eax, ebx                        ; channels may overflow into bits 8/16/24
+5912b  mov edx, eax
+5912d  add edi, 4
+59130  and edx, 0x1010100                  ; the three carry bits
+59136  mov ebx, edx
+59138  shr edx, 8
+5913b  sub ebx, edx                        ; 0x100-1, 0x10000-0x100, 0x1000000-0x10000 = 0xff masks
+5913d  or  ebx, eax                        ; saturate
+59145  mov dword ptr [edi - 4], ebx</code></pre>
+<p>The cost of the evenness trick is one bit of precision per channel;
+the gain is a 3-channel saturating add in 7 integer instructions with no
+MMX state to save and no <code>emms</code>. This is the same "add with
+carry masks" idea that the MMX routine solves with one instruction:</p>
+<pre><code>b37b0  movq mm0, qword ptr [esi + ecx]
+b37b4  paddusb mm0, qword ptr [ebx + ecx]  ; blend mode 1: 8 bytes, unsigned saturating
+b37b8  movq qword ptr [edi + ecx], mm0
+b37bc  add ecx, 8
+b37c2  jne 0xb37b0</code></pre>
+<p>with a nice detail in the prologue (0xb37a8):
+<code>neg ecx; sub esi,ecx; sub ebx,ecx; sub edi,ecx</code> points all
+three pointers at the end and counts the index from <code>-n</code> up
+to 0, so the <code>add ecx, 8</code> that advances also provides the
+zero flag for the exit. A SWAR fallback for CPUs without MMX exists
+(0xb36fc); the engine tests the CPUID bit in <code>[0xdc2cc]</code>.</p>
+<h2
+id="5-radial-blur-bilinear-interpolation-without-a-multiplication">5.
+Radial blur: bilinear interpolation without a multiplication</h2>
+<p>The radial blur kernel (0x35fec) does three lerps per pixel, each as
+<code>a + T[f][b-a]</code> where the 64x512 byte table
+<code>T[f][d] = trunc(d*f/64)</code> (32 KB, built once at 0x70fc)
+replaces the multiply:</p>
+<pre><code>35fec  mov ebp, dword ptr [0xc4718]
+35ff2  mov edx, dword ptr [ebp + ecx*4]  ; xtab[x] in 26.6 fixed point
+35ff6  mov ebx, edx
+35ff8  and ebx, 0x3f                     ; fractional 6 bits
+35ffb  shl ebx, 9                        ; * 512 = row of T
+3600b  mov al, byte ptr [esi + edx]      ; a = p[0]   (edx = xtab &gt;&gt; 6)
+3600e  mov bl, byte ptr [esi + edx + 0x140] ; c = p[+320]
+...
+3601f  sub edx, ecx                      ; d = c - a  (signed, -255..255)
+3602d  add al, byte ptr [ebp + edx]      ; va = a + T[fy][d]    (the table is centred, so negative d indexes below the middle)
+...
+36080  add dl, byte ptr [ebx + 0xc472c]  ; dest += att[v]
+36086  sbb bl, bl
+36088  or  dl, bl                        ; saturate</code></pre>
+<p>The 512-entry rows make the <em>signed</em> difference a direct index
+(the pointer to the table is biased to its middle at
+<code>[0xc482c]</code>), and the final <code>add al, T[...]</code> wraps
+modulo 256 to the right interpolated value. The 8 bit
+<code>matrix</code> convolution (0x5276a) is the same idea with 9 tables
+of <code>trunc(v*m_k) &amp; 255</code> summed with wrapping 8 bit
+adds.</p>
+<p>The effect is also computed <strong>in place</strong>: the four
+quadrants walk outward from the centre (<code>dec esi / dec edi</code>
+toward the left half), so a pixel reads neighbours already updated in
+the same pass; one frame of the loop therefore already carries the
+streaks across the whole screen.</p>
+<h2 id="6-the-float---fixed-trick-add-15--236">6. The float -&gt; fixed
+trick: add 1.5 * 2^36</h2>
+<p>Floating-point to 16.16 fixed point in two x87 instructions, without
+<code>fistp</code> and its control-word dance. Parasite's step
+computation (0x591bd):</p>
+<pre><code>591bf  fld  st(0)
+591c1  fabs
+591c3  fadd dword ptr [0xc8964]       ; + 1.5*2^36
+591c9  fxch st(1)
+591cb  fadd dword ptr [0xc8964]
+591d3  fstp qword ptr [0xc8958]       ; store as DOUBLE ...
+591d9  fstp qword ptr [0xc8950]
+591df  mov  eax, dword ptr [0xc8958]  ; ... and read the LOW dword: the value in 16.16, rounded to nearest-even
+591ea  sar  eax, 0xb</code></pre>
+<p>In a double, the constant <code>1.5*2^36</code> leaves the 52
+mantissa bits with their lowest 16 integer bits aligned so that the low
+dword equals <code>round(x * 65536)</code>. The edge setup of the sprite
+blitter (0x58f04, <code>fadd [0xc88b4]</code>) and the reebok corner
+grid use the same trick, and ceil is
+<code>add ebx, 0xffff; sar ebx, 16</code> (0x58f94). The trick
+<strong>requires the x87 precision control at 53/64 bits</strong>: the
+first golden frames of the 3D scenes were black because the Unicorn
+snapshot restored the CPU registers but not the FPU control word (FPCW 0
+= 24-bit precision), so the sum was rounded to single precision and
+every fixed-point value became 0 (fix: <code>FPCW = 0x37f</code>, see
+<code>re/NOTES.md</code>).</p>
+<p>The other conversion in the engine is the C-cast helper
+<code>ftol</code> at 0x1ed6a, which does the usual Watcom dance (set the
+rounding bits of the control word with
+<code>mov byte [esp+1], 0x1f</code>, <code>fldcw</code>,
+<code>frndint</code>, restore): C-style truncation costs two
+<code>fldcw</code>, hence the engine's choice of the magic-number trick
+wherever it converts in an inner loop.</p>
+<pre><code>1ed6c  fnstcw word ptr [esp]
+1ed70  push dword ptr [esp]
+1ed73  mov byte ptr [esp + 1], 0x1f    ; RC = 11 (toward zero)
+1ed78  fldcw word ptr [esp]
+1ed7b  frndint</code></pre>
+<h2
+id="7-two-texture-coordinates-in-one-32-bit-register-echo4echo6-rasteriser">7.
+Two texture coordinates in one 32 bit register (echo4/echo6
+rasteriser)</h2>
+<p>The perspective rasteriser (0x8985d) packs U and V as two 8.8 numbers
+in one <code>ebx</code>: U in the high half, V in the low half. One
+<code>add ebx, eax</code> steps both; the two integer parts are
+extracted with <code>shr edx, 24</code> (U) and <code>mov dh, bh</code>
+(V):</p>
+<pre><code>8a0a7  add ebx, eax            ; step both coordinates
+8a0a9  mov edx, ebx
+8a0ab  shr edx, 0x18           ; dl = U integer (bits 24..31)
+8a0ae  mov dh, bh              ; dh = V integer (bits 8..15)  -&gt; edx = V*256 + U
+8a0b0  mov ebp, dword ptr [0xcef10]
+8a0b6  mov eax, dword ptr [0xcef14]
+8a0bb  mov cl, byte ptr [esi + edx]    ; texel from the 256x256 texture
+8a0be  add ebx, eax
+8a0c0  add byte ptr [ebp - 7], cl     ; dest += texel (byte wrap)
+8a0c3  mov edx, ebx                    ; next pixel, the block is unrolled 8 times ...</code></pre>
+<p>Three details: the <strong>additive</strong> drawing
+(<code>add byte ptr [dest], cl</code>, a read-modify-write on memory)
+makes the draw order irrelevant, which removes any need for a depth sort
+or z-buffer (the engine still buckets triangles into 4096 depth bins but
+ignores the order); a carry out of V leaks into U, a known quirk
+reproduced by the port; and the span set-up (0x89fa4) ends in
+<code>jmp ecx</code> into the <strong>unrolled 8-pixel block</strong>,
+using the jump table at 0xd4570 to enter in the middle, so the remainder
+of a span has no loop overhead. 1/z is inverted only every 8 pixels, and
+U/V are linear in between.</p>
+<h2 id="8-clip-codes-with-add--adc-and-a-jump-table">8. Clip codes with
+<code>add</code> / <code>adc</code> and a jump table</h2>
+<p>Triangle clipping against one plane (0x8a21f) gathers the sign bits
+of three float values into a 3-bit index, then jumps:</p>
+<pre><code>8a21f  mov ebp, dword ptr [0xd45d4]    ; x - z of vertex 3 (a float)
+8a225  xor eax, eax
+8a227  add ebp, ebp                    ; CF = sign bit
+8a229  mov ebp, dword ptr [0xd45d0]
+8a22f  adc eax, eax                    ; eax = (eax&lt;&lt;1) | CF
+8a231  add ebp, ebp
+8a233  mov ebp, dword ptr [0xd45cc]
+8a239  adc eax, eax
+8a23b  add ebp, ebp
+8a23d  adc eax, eax
+8a23f  mov ebp, dword ptr [eax*4 + 0xd4590]
+8a246  jmp ebp                         ; 0 = all outside, 7 = all inside, others: 1 or 2 triangles after clipping</code></pre>
+<p>The floats are read as integers (<code>mov ebp,[..]</code>) and
+doubled: <code>add ebp,ebp</code> shifts the sign bit into CF,
+<code>adc eax,eax</code> shifts it into the case number. No FPU compare,
+no branches, and the eight cases are handled by eight specialised
+routines.</p>
+<h2 id="9-shadow-volumes-in-two-memory-operations-per-span">9. Shadow
+volumes in two memory operations per span</h2>
+<p>The beam filler (0x612fc, scene <code>aziz1</code>) never stores a
+pixel; for each span it does:</p>
+<pre><code>616c4  mov ebx, dword ptr [0xc8c18]    ; row start of this scanline
+616ca  sub ecx, edx                    ; span length
+616cc  jbe 0x616e1
+616ce  cmp ecx, 0x3e8                  ; spans longer than 1000 are dropped
+616d4  jg  0x616e1
+616d6  lea edi, [ebx + ecx*2]
+616d9  add word ptr [ebx + edx*2], ax  ; +k at the left edge
+616dd  sub word ptr [edi + edx*2], ax  ; -k just after the last pixel</code></pre>
+<p>A prefix sum along the row afterwards (the <code>interpolator</code>
+effect) recovers the coverage count: cost per span is two
+read-modify-writes whatever its length, and counting overlapping
+shadow-volume faces falls out of the 16 bit wrap-around of the deltas.
+The <code>interpolator</code> loop itself clamps with a single unsigned
+compare (<code>cmp eax,0xff; ja store255</code>, 0x57bad), catching both
+negative and &gt; 255 values with one branch.</p>
+<h2
+id="10-fast-1sqrt-from-the-float-bits-marching-cubes-normals-0x57d63">10.
+Fast 1/sqrt from the float bits (marching cubes normals, 0x57d63)</h2>
+<pre><code>57d63  fstp dword ptr [0xc8850]        ; |g|^2 as a float
+57d69  mov  eax, dword ptr [0xc8850]
+57d6e  mov  ebp, 0xbe000000
+57d73  shr  eax, 0x11
+57d76  mov  edx, dword ptr [0xc8850]
+57d7c  and  eax, 0x7f                  ; top 7 mantissa bits -&gt; table index
+57d7f  and  edx, 0x7f800000            ; exponent field
+57d85  xor  ebx, ebx
+57d87  sub  ebp, edx
+57d89  shr  ebp, 1                     ; exponent of 1/sqrt = (0xbe000000 - e) / 2
+57d8b  mov  bl, byte ptr [eax + 0xc1a58]  ; mantissa from a 128-byte table built at start-up (0x6258)
+57d91  shl  ebx, 0xf
+...
+57d9e  or   ebp, ebx                   ; assemble the float: r ~ 1/sqrt(|g|^2), ~8 bits</code></pre>
+<p>followed by one Newton-Raphson step
+<code>k = r*0.5*(3 - r*r*|g|^2)</code> (0x57db1). This is the "integer
+halving of the exponent + small table" trick, 30 years before it became
+famous for a different constant. In the same polygoniser, <strong>floats
+are compared as signed integers</strong> (0x57cd4:
+<code>cmp eax, ecx; jl ...</code>) because the volume values and
+threshold are positive IEEE numbers, and the 256-case triangle table is
+selected with two 4-bit masks remembered in a scratch array whose
+address is patched into the code (0x580e2
+<code>mov dword [esi + 0xfca80], ebp</code>).</p>
+<h2 id="11-smaller-things">11. Smaller things</h2>
+<ul>
+<li><p><strong>Plasma with 4 mirrored stores (0x584b6).</strong>
+<code>plasma1volume</code> computes <code>fsin</code> for one octant
+only (8x8x8 = 512 sines) and writes every result to four mirrored
+locations with <code>fst/fst/fst/fstp</code> while the destination
+pointers walk <em>forwards</em> in x and <em>backwards</em> in the
+mirror, then <code>rep movsd</code> copies slice k to slice 15-k:</p>
+<pre><code>584b6  fld dword ptr [edi]       ; distance table entry
+584b8  fadd st(3)                ; + Frame*0.02
+584ba  fsin
+584bc  fmul st(2)                ; * b
+584be  fadd st(1)                ; + a
+584c0  fst dword ptr [eax + edx] ; (x,   y)
+584c3  fst dword ptr [eax + esi] ; (15-x, y)
+584c6  fst dword ptr [eax + ebx] ; (x,   15-y)
+584c9  fstp dword ptr [eax + ebp]; (15-x, 15-y)</code></pre>
+<p>An 8x reduction in transcendental calls, exact because the field is
+symmetric.</p></li>
+<li><p><strong>Lowpass in MMX, with a one-pixel bug (0xb49ac,
+0xb49e3).</strong> Four 16 bit lanes per 32 bit pixel:
+<code>psubw / pmullw / psraw 7 / paddw</code> is
+<code>y += (x-y)*a&gt;&gt;7</code> for all four channels in 4
+instructions. The backward pass starts at
+<code>esi = 0xb3e38 + 0x500</code>, one dword too far (it should be
+<code>+0x4fc</code>), reading the first byte past the row; the demo's
+look depends on it, so the port keeps it:</p>
+<pre><code>b49ac  movd mm0, dword ptr [esi + ebp]
+b49b6  psubw mm0, mm1
+b49b9  pmullw mm0, mm6
+b49bc  psraw mm0, 7
+b49c0  paddw mm1, mm0
+...
+b49de  mov esi, 0xb3e38
+b49e3  add esi, 0x500</code></pre></li>
+<li><p><strong>Inverse-table fades.</strong> Fade/xfade/playrgbani
+cross-fade all use two 256-byte "multiply by constant" tables rebuilt
+per frame (<code>tabA[i] = trunc(i*(1-frac))</code>,
+<code>tabB[i] = trunc(i*frac)</code>) and one <code>add</code> per byte;
+the table addresses are patched into the loop by 0x4f5d8.</p></li>
+</ul>
+<hr />
+<h2 id="what-is-not-here">What is not here</h2>
+<p>I only list what I could confirm in the disassembly or the notes. The
+engine contains ~25 polygon fillers (0x612fc ... 0x74f88) of which only
+two are used by the script and neither is MMX; the LightWave/3DS loaders
+are plain C (Watcom) with jump-table chunk dispatchers and have no
+remarkable asm; the TCB spline is C-like double-precision x87 code
+(0x26534/0x242e0) with no particular trick. The LZ/bzip-like
+decompressors in the archive reader (0x2faf8, 0x2fc39, 0x35d56) were not
+studied in enough detail for a write-up.</p>
+</body>
+</html>
