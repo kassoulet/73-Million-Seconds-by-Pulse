@@ -47,6 +47,9 @@ async function boot() {
   const marks = $('marks'); marks.innerHTML = '';
   chapters.forEach((c, i) => { const m = document.createElement('i'); m.style.left = (c.t / eng.endTime * 100) + '%'; m.title = c.name; marks.appendChild(m); });
   eng.seek(0); present(eng.bufs.SCREEN);
+  // warm pass: run the first 2 s of every chapter once (script expression compile, material shaders, scene parsing happen on first use, which would hitch the live playback), then back to 0; play() seeks to 0 anyway
+  { const T = performance.now(); for (let k = 0; k < chapters.length; k++) { status('preparing ' + (k + 1) + '/' + chapters.length + '…'); await new Promise((r) => setTimeout(r)); try { eng.seek(Math.min(chapters[k].t + 2, eng.endTime - 0.05)); } catch (e) { console.warn('warm', k, e); } }
+    eng.seek(0); present(eng.bufs.SCREEN); window.warmMs = performance.now() - T; }
   $('loading').hidden = true; $('start').hidden = false; status('ready');
 }
 
